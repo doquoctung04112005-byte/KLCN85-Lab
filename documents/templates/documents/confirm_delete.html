@@ -1,0 +1,16 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Xác nhận xóa tài liệu | KLCN85{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Xác nhận xóa tài liệu</h1>
+<div class="alert alert-warning" role="alert">
+    Bạn có chắc muốn xóa tài liệu <strong>{{ document.title }}</strong>?
+    Hành động này không thể hoàn tác.
+</div>
+<form method="post" action="{% url 'document_delete' document.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Xóa tài liệu</button>
+    <a class="btn btn-outline-secondary" href="{% url 'document_detail' document.pk %}">Hủy</a>
+</form>
+{% endblock %}

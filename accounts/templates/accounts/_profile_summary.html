@@ -1,0 +1,24 @@
+<dl class="row mb-0">
+    <dt class="col-sm-4">Tên đăng nhập</dt>
+    <dd class="col-sm-8">{{ request.user.get_username }}</dd>
+
+    {% if profile %}
+        <dt class="col-sm-4">Vai trò</dt>
+        <dd class="col-sm-8">{{ profile.get_role_display }}</dd>
+
+        <dt class="col-sm-4">Phòng ban</dt>
+        <dd class="col-sm-8">
+            {% if profile.department %}
+                {{ profile.department.name }}
+            {% else %}
+                Chưa thuộc phòng ban
+            {% endif %}
+        </dd>
+    {% endif %}
+</dl>
+
+{% if not profile %}
+    <div class="alert alert-warning mb-0" role="alert">
+        Tài khoản của bạn chưa có UserProfile. Quản trị viên cần bổ sung hồ sơ để hiển thị vai trò và phòng ban.
+    </div>
+{% endif %}

@@ -1,0 +1,46 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Đăng nhập | KLCN85{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-4">Đăng nhập</h1>
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Tên đăng nhập</label>
+                        <input type="text" name="username" id="id_username" class="form-control"
+                               value="{{ form.username.value|default_if_none:'' }}"
+                               autocomplete="username" required autofocus>
+                        {% for error in form.username.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label">Mật khẩu</label>
+                        <input type="password" name="password" id="id_password" class="form-control"
+                               autocomplete="current-password" required>
+                        {% for error in form.password.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

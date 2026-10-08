@@ -1,0 +1,9 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Không thể thực hiện | KLCN85{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Không thể thực hiện</h1>
+<div class="alert alert-warning" role="alert">{{ message }}</div>
+<a class="btn btn-outline-secondary" href="{% url 'document_list' %}">Về danh sách tài liệu</a>
+{% endblock %}

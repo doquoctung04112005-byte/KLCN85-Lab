@@ -1,0 +1,37 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Người dùng | KLCN85{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Danh sách người dùng</h1>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th scope="col">Tên đăng nhập</th>
+                <th scope="col">Vai trò</th>
+                <th scope="col">Phòng ban</th>
+                <th scope="col">Trạng thái</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in users %}
+                <tr>
+                    <td>{{ entry.username }}</td>
+                    <td>{{ entry.role }}</td>
+                    <td>{{ entry.department }}</td>
+                    <td>
+                        {% if entry.is_active %}
+                            Hoạt động
+                        {% else %}
+                            Không hoạt động
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-muted">Chưa có người dùng.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Tài liệu | KLCN85{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <h1 class="h3 mb-0">Tài liệu</h1>
+    {% if can_create %}
+        <a class="btn btn-primary" href="{% url 'document_create' %}">Tạo tài liệu</a>
+    {% endif %}
+</div>
+
+{% if not profile %}
+    <div class="alert alert-warning" role="alert">
+        Tài khoản của bạn chưa có hồ sơ. Quản trị viên cần bổ sung hồ sơ để xem và tạo tài liệu.
+    </div>
+{% elif not profile.department_id %}
+    <div class="alert alert-warning" role="alert">
+        Hồ sơ chưa có phòng ban. Quản trị viên cần gán phòng ban trước khi bạn tạo tài liệu.
+    </div>
+{% endif %}
+
+{% if documents %}
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Tiêu đề</th>
+                    <th scope="col">Người sở hữu</th>
+                    <th scope="col">Phòng ban</th>
+                    <th scope="col">Cập nhật</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in documents %}
+                    <tr>
+                        <td><a href="{% url 'document_detail' document.pk %}">{{ document.title }}</a></td>
+                        <td>{{ document.owner.get_username }}</td>
+                        <td>{{ document.department.name }}</td>
+                        <td>{{ document.updated_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info" role="status">Chưa có tài liệu nào bạn được xem.</div>
+{% endif %}
+{% endblock %}

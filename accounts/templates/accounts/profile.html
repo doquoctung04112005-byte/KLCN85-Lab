@@ -1,0 +1,12 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Hồ sơ cá nhân | KLCN85{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Hồ sơ cá nhân</h1>
+<div class="card shadow-sm">
+    <div class="card-body p-4">
+        {% include "accounts/_profile_summary.html" %}
+    </div>
+</div>
+{% endblock %}

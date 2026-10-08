@@ -1,0 +1,9 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Không có quyền truy cập | KLCN85{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Không có quyền truy cập</h1>
+<div class="alert alert-warning" role="alert">{{ message }}</div>
+<a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">Về dashboard</a>
+{% endblock %}
