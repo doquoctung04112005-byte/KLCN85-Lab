@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xem trước {{ attachment.display_name }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px; background: #f8f9fa; color: #202124; font: 14px/1.65 Inter, ui-sans-serif, system-ui, sans-serif; }
+        .sheet { max-width: 1080px; margin: 0 auto; }
+        .heading { margin-bottom: 16px; color: #5f6368; font-size: 12px; }
+        .paper { min-height: 70vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: white; padding: clamp(20px, 5vw, 56px); box-shadow: 0 2px 8px #2021240d; }
+        .paper p { white-space: pre-wrap; }
+        .table-scroll { overflow: auto; margin: 20px 0; }
+        table { min-width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { min-width: 80px; border: 1px solid #dadce0; padding: 7px 10px; text-align: left; white-space: pre-wrap; }
+        th { background: #f1f3f4; font-weight: 600; }
+        .empty { color: #80868b; }
+        @media (max-width: 600px) { body { padding: 12px; } .paper { padding: 18px; } }
+    </style>
+</head>
+<body>
+<main class="sheet">
+    <div class="heading">Xem trước {{ attachment.get_file_type_display }} · {{ attachment.display_name }}</div>
+    <article class="paper">
+        {% if preview_data is None %}
+            <p class="empty">Không thể hiển thị nội dung tệp này. Bạn có thể tải xuống để mở bằng ứng dụng phù hợp.</p>
+        {% elif preview_type == "docx" %}
+            {% for block in preview_data %}
+                {% if block.kind == "paragraph" %}<p>{{ block.text }}</p>
+                {% else %}<div class="table-scroll"><table><tbody>{% for row in block.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+            {% empty %}<p class="empty">Tài liệu Word này chưa có nội dung văn bản để xem trước.</p>{% endfor %}
+        {% else %}
+            {% for sheet in preview_data %}
+                <h2>{{ sheet.name }}</h2>
+                <div class="table-scroll"><table><tbody>
+                    {% for row in sheet.rows %}<tr>{% for cell in row %}{% if forloop.parentloop.first %}<th>{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}{% endfor %}</tr>{% endfor %}
+                </tbody></table></div>
+            {% empty %}<p class="empty">Bảng tính này chưa có dữ liệu để xem trước.</p>{% endfor %}
+        {% endif %}
+    </article>
+</main>
+</body>
+</html>

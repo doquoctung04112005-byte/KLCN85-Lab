@@ -1,49 +1,83 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Tài liệu | KLCN85{% endblock %}
+{% block title %}{% if scope == "shared" %}Được chia sẻ với tôi{% elif scope == "department" %}Tài liệu phòng ban{% elif scope == "mine" %}Tệp của tôi{% elif profile.role == "admin" %}Tất cả tài liệu{% else %}Tài liệu{% endif %} | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-    <h1 class="h3 mb-0">Tài liệu</h1>
-    {% if can_create %}
-        <a class="btn btn-primary" href="{% url 'document_create' %}">Tạo tài liệu</a>
-    {% endif %}
+<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div>
+        <nav class="mb-2 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><span class="text-gray-700">{% if scope == "shared" %}Được chia sẻ với tôi{% elif scope == "department" %}Tài liệu phòng ban{% elif scope == "mine" %}Tệp của tôi{% elif profile.role == "admin" %}Tất cả tài liệu{% else %}Tài liệu{% endif %}</span></nav>
+        <h1 class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-[28px]">{% if scope == "shared" %}Được chia sẻ với tôi{% elif scope == "department" %}Tài liệu phòng ban{% elif scope == "mine" %}Tệp của tôi{% elif profile.role == "admin" %}Tất cả tài liệu{% else %}Tài liệu{% endif %}</h1>
+        <p class="mt-1 text-sm text-gray-500">Tìm và mở tài liệu bạn có quyền truy cập.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a class="soft-button" href="{% url 'folder_list' %}"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5h7l2 2h8v9h-17z"/></svg>Thư mục</a>
+        {% if can_create %}<a class="primary-button" href="{% url 'document_create' %}"><span class="text-lg leading-none">＋</span>Tải tệp / tạo tài liệu</a>{% endif %}
+    </div>
 </div>
 
 {% if not profile %}
-    <div class="alert alert-warning" role="alert">
-        Tài khoản của bạn chưa có hồ sơ. Quản trị viên cần bổ sung hồ sơ để xem và tạo tài liệu.
-    </div>
-{% elif not profile.department_id %}
-    <div class="alert alert-warning" role="alert">
-        Hồ sơ chưa có phòng ban. Quản trị viên cần gán phòng ban trước khi bạn tạo tài liệu.
-    </div>
+    <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">Tài khoản chưa có hồ sơ người dùng. Quản trị viên cần bổ sung hồ sơ để hiển thị tài liệu.</div>
 {% endif %}
 
-{% if documents %}
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead>
-                <tr>
-                    <th scope="col">Tiêu đề</th>
-                    <th scope="col">Người sở hữu</th>
-                    <th scope="col">Phòng ban</th>
-                    <th scope="col">Cập nhật</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for document in documents %}
-                    <tr>
-                        <td><a href="{% url 'document_detail' document.pk %}">{{ document.title }}</a></td>
-                        <td>{{ document.owner.get_username }}</td>
-                        <td>{{ document.department.name }}</td>
-                        <td>{{ document.updated_at|date:"d/m/Y H:i" }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-{% else %}
-    <div class="alert alert-info" role="status">Chưa có tài liệu nào bạn được xem.</div>
+<nav class="mb-5 flex flex-wrap gap-2 border-b border-gray-200" aria-label="Phạm vi tài liệu">
+    {% for value, label in scope_options %}
+        <a class="border-b-2 px-3 py-2.5 text-sm font-medium transition {% if scope == value %}border-blue-600 text-blue-700{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800{% endif %}"
+           href="?scope={{ value }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}">{{ label }}</a>
+    {% endfor %}
+</nav>
+
+{% if root_folders %}
+    <section class="mb-7" aria-labelledby="folders-heading">
+        <div class="mb-3 flex items-center justify-between">
+            <h2 id="folders-heading" class="text-sm font-semibold text-gray-700">Thư mục</h2>
+            {% if can_create %}<a href="{% url 'folder_create' %}" class="text-sm font-medium text-blue-700 hover:underline">Tạo thư mục</a>{% endif %}
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {% for folder in root_folders %}
+                <a class="folder-tile" href="{% url 'folder_detail' folder.pk %}">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5h7l2 2h8v9h-17z"/><path d="M3.5 7.5V5.8h7l2 1.7"/></svg></span>
+                    <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-gray-800">{{ folder.name }}</span><span class="block text-xs text-gray-500">Cập nhật {{ folder.updated_at|date:"d/m/Y" }}</span></span>
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
 {% endif %}
+
+<section class="panel" aria-labelledby="documents-heading">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:px-5">
+        <div>
+            <h2 id="documents-heading" class="font-semibold text-gray-800">Tệp</h2>
+            <p class="mt-0.5 text-xs text-gray-500">{% if query %}Kết quả cho “{{ query }}”{% else %}Sắp xếp theo ngày cập nhật{% endif %}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <form method="get" action="{% url 'document_list' %}" class="flex items-center gap-2">
+                <input type="hidden" name="scope" value="{{ scope }}">
+                {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+                {% if file_type %}<input type="hidden" name="type" value="{{ file_type }}">{% endif %}
+                <label for="document-sort" class="sr-only">Sắp xếp theo ngày cập nhật</label>
+                <select id="document-sort" name="sort" class="!w-auto !rounded-full !py-2 !text-xs" onchange="this.form.submit()">
+                    <option value="recent" {% if sort != "oldest" %}selected{% endif %}>Mới cập nhật</option>
+                    <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Cũ cập nhật</option>
+                </select>
+            </form>
+            <div class="flex rounded-full border border-gray-200 p-1" role="group" aria-label="Cách hiển thị">
+                <button type="button" data-layout-toggle="list" aria-pressed="true" class="grid h-8 w-8 place-items-center rounded-full bg-blue-50 text-blue-700" aria-label="Hiển thị dạng danh sách"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+                <button type="button" data-layout-toggle="grid" aria-pressed="false" class="grid h-8 w-8 place-items-center rounded-full text-gray-500 hover:bg-gray-100" aria-label="Hiển thị dạng lưới"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></button>
+            </div>
+        </div>
+    </div>
+    {% if documents %}
+        <div class="px-3 pb-3 sm:px-5 sm:pb-5">
+            {% include "documents/_document_collection.html" %}
+        </div>
+    {% else %}
+        <div class="px-5 py-16 text-center">
+            <span class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3.8h8l4 4V20H6z"/><path d="M14 4v4h4M9 13h6M9 16h4"/></svg></span>
+            <h3 class="font-semibold text-gray-800">Chưa có tài liệu phù hợp</h3>
+            <p class="mx-auto mt-1 max-w-sm text-sm text-gray-500">Thử thay đổi từ khóa hoặc bộ lọc. Tài liệu được chia sẻ với bạn sẽ xuất hiện trong mục riêng.</p>
+            {% if can_create %}<a class="primary-button mt-5" href="{% url 'document_create' %}">Tạo tài liệu đầu tiên</a>{% endif %}
+        </div>
+    {% endif %}
+</section>
 {% endblock %}

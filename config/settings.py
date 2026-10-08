@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -79,18 +83,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-demo_sqlite_path = os.environ.get("KLCN85_SQLITE_PATH")
-if demo_sqlite_path:
-    database_path = Path(demo_sqlite_path).expanduser()
-    if not database_path.is_absolute():
-        database_path = BASE_DIR / database_path
-else:
-    database_path = BASE_DIR / "db.sqlite3"
+database_password = os.environ.get("KLCN85_DB_PASSWORD")
+if not database_password:
+    raise ImproperlyConfigured("Thiếu KLCN85_DB_PASSWORD trong file .env.")
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': database_path,
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'klcn85_lab',
+        'USER': 'klcn85_app',
+        'PASSWORD': database_password,
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 

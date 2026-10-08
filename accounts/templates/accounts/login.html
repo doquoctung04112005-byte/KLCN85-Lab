@@ -1,46 +1,27 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Đăng nhập | KLCN85{% endblock %}
+{% block title %}Đăng nhập | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-7 col-lg-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h1 class="h3 mb-4">Đăng nhập</h1>
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger" role="alert">
-                            Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Tên đăng nhập</label>
-                        <input type="text" name="username" id="id_username" class="form-control"
-                               value="{{ form.username.value|default_if_none:'' }}"
-                               autocomplete="username" required autofocus>
-                        {% for error in form.username.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="id_password" class="form-label">Mật khẩu</label>
-                        <input type="password" name="password" id="id_password" class="form-control"
-                               autocomplete="current-password" required>
-                        {% for error in form.password.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="mx-auto grid max-w-4xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm md:grid-cols-[1fr_1.05fr]">
+    <section class="hidden flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-9 text-white md:flex">
+        <div class="flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white/15"><svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 4.5h7l4 4v11h-11z"/><path d="M13.5 4.5v4h4M9 13h6M9 16.5h6"/></svg></span><span class="font-semibold">KLCN85 Drive</span></div>
+        <div><p class="mb-3 text-sm font-medium text-blue-100">Không gian tài liệu nội bộ</p><h1 class="text-3xl font-semibold leading-tight">Tài liệu của bạn,<br>luôn trong tầm tay.</h1><p class="mt-4 max-w-sm text-sm leading-6 text-blue-50">Lưu trữ, sắp xếp và chia sẻ tài liệu theo phòng ban.</p></div>
+        <p class="text-xs text-blue-100">KLCN85 · Hệ thống quản lý tài liệu</p>
+    </section>
+    <section class="p-6 sm:p-9">
+        <div class="mb-7 md:hidden"><span class="text-sm font-semibold text-blue-700">KLCN85 Drive</span></div>
+        <h2 class="text-2xl font-semibold tracking-tight text-gray-900">Chào mừng trở lại</h2>
+        <p class="mt-1 text-sm text-gray-500">Đăng nhập bằng tài khoản nội bộ của bạn.</p>
+        <form method="post" action="{% url 'login' %}" class="mt-7 space-y-5" novalidate>
+            {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+            {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.</div>{% endif %}
+            <div><label for="id_username" class="mb-1.5 block text-sm font-semibold text-gray-700">Tên đăng nhập</label><input type="text" name="username" id="id_username" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" required autofocus class="form-control">{% for error in form.username.errors %}<p class="field-error mt-1">{{ error }}</p>{% endfor %}</div>
+            <div><label for="id_password" class="mb-1.5 block text-sm font-semibold text-gray-700">Mật khẩu</label><input type="password" name="password" id="id_password" autocomplete="current-password" required class="form-control">{% for error in form.password.errors %}<p class="field-error mt-1">{{ error }}</p>{% endfor %}</div>
+            <button type="submit" class="primary-button w-full">Đăng nhập</button>
+        </form>
+        <p class="mt-6 text-center text-xs text-gray-400">Chỉ dành cho người dùng được cấp tài khoản KLCN85.</p>
+    </section>
 </div>
 {% endblock %}

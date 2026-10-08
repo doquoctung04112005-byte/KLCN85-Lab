@@ -159,7 +159,10 @@ class DocumentAccessTests(TestCase):
                 edit_url = self.edit_url(document)
                 get_response = self.client.get(edit_url)
                 self.assertEqual(get_response.status_code, 200)
-                self.assertEqual(set(get_response.context["form"].fields), {"title", "content"})
+                self.assertEqual(
+                    set(get_response.context["form"].fields),
+                    {"title", "content", "folder", "upload"},
+                )
 
                 response = self.client.post(
                     edit_url,
@@ -237,7 +240,10 @@ class DocumentAccessTests(TestCase):
         create_url = reverse("document_create")
         get_response = self.client.get(create_url)
         self.assertEqual(get_response.status_code, 200)
-        self.assertEqual(set(get_response.context["form"].fields), {"title", "content"})
+        self.assertEqual(
+            set(get_response.context["form"].fields),
+            {"title", "content", "folder", "upload"},
+        )
 
         forged_id = uuid.uuid4()
         post_response = self.client.post(

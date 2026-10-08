@@ -1,12 +1,8 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Hồ sơ cá nhân | KLCN85{% endblock %}
+{% block title %}Hồ sơ cá nhân | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Hồ sơ cá nhân</h1>
-<div class="card shadow-sm">
-    <div class="card-body p-4">
-        {% include "accounts/_profile_summary.html" %}
-    </div>
-</div>
+<div class="mb-6"><nav class="mb-2 text-xs font-medium text-gray-500"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span>Hồ sơ</nav><h1 class="text-2xl font-semibold tracking-tight text-gray-900">Hồ sơ cá nhân</h1><p class="mt-1 text-sm text-gray-500">Thông tin tài khoản đang đăng nhập.</p></div>
+<section class="panel max-w-2xl p-5 sm:p-7"><div class="mb-6 flex items-center gap-4"><span class="grid h-14 w-14 place-items-center rounded-full bg-blue-100 text-xl font-semibold text-blue-800">{{ request.user.get_username|slice:":1"|upper }}</span><div><h2 class="font-semibold text-gray-900">{{ request.user.get_username }}</h2><p class="text-sm text-gray-500">Tài khoản KLCN85</p></div></div>{% include "accounts/_profile_summary.html" %}</section>
 {% endblock %}

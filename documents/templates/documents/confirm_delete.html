@@ -1,16 +1,16 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Xác nhận xóa tài liệu | KLCN85{% endblock %}
+{% block title %}Xóa tài liệu | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Xác nhận xóa tài liệu</h1>
-<div class="alert alert-warning" role="alert">
-    Bạn có chắc muốn xóa tài liệu <strong>{{ document.title }}</strong>?
-    Hành động này không thể hoàn tác.
-</div>
-<form method="post" action="{% url 'document_delete' document.pk %}">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger">Xóa tài liệu</button>
-    <a class="btn btn-outline-secondary" href="{% url 'document_detail' document.pk %}">Hủy</a>
-</form>
+<section class="panel mx-auto max-w-lg p-6 sm:p-8">
+    <span class="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-50 text-red-700"><svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6m4-6v6M6.5 7l1 13h9l1-13M9 7V4h6v3"/></svg></span>
+    <h1 class="text-xl font-semibold text-gray-900">Xóa tài liệu?</h1>
+    <p class="mt-2 text-sm leading-6 text-gray-600">Bạn sắp xóa <strong class="text-gray-900">{{ document.title }}</strong>. Hành động này không thể hoàn tác.</p>
+    <form method="post" action="{% url 'document_delete' document.pk %}" class="mt-6 flex flex-wrap gap-2">
+        {% csrf_token %}
+        <button type="submit" class="danger-button !min-h-10">Xóa tài liệu</button>
+        <a class="soft-button" href="{% url 'document_detail' document.pk %}">Hủy</a>
+    </form>
+</section>
 {% endblock %}

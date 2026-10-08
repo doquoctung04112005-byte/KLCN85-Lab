@@ -139,27 +139,24 @@ class SeedDemoCommandTests(TestCase):
         self.assertNotIn(self.demo_password, output.getvalue())
 
 
-class DemoDatabaseSettingsTests(SimpleTestCase):
+class PostgresDatabaseSettingsTests(SimpleTestCase):
     settings_file = Path(__file__).resolve().parents[1] / "config" / "settings.py"
 
-    def test_default_and_relative_sqlite_paths(self):
-        with patch.dict(os.environ):
-            os.environ.pop("KLCN85_SQLITE_PATH", None)
-            default_values = runpy.run_path(str(self.settings_file))
-
-        base_dir = default_values["BASE_DIR"]
-        self.assertEqual(
-            Path(default_values["DATABASES"]["default"]["NAME"]),
-            base_dir / "db.sqlite3",
-        )
-
-        relative_path = Path("demo_data") / "day6.sqlite3"
-        with patch.dict(os.environ, {"KLCN85_SQLITE_PATH": str(relative_path)}):
-            selected_values = runpy.run_path(str(self.settings_file))
+    def test_postgresql_connection_settings(self):
+        test_password = "test-only-db-password"
+        with patch.dict(os.environ, {"KLCN85_DB_PASSWORD": test_password}):
+            values = runpy.run_path(str(self.settings_file))
 
         self.assertEqual(
-            Path(selected_values["DATABASES"]["default"]["NAME"]),
-            base_dir / relative_path,
+            values["DATABASES"]["default"],
+            {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": "klcn85_lab",
+                "USER": "klcn85_app",
+                "PASSWORD": test_password,
+                "HOST": "127.0.0.1",
+                "PORT": "5432",
+            },
         )
 
 

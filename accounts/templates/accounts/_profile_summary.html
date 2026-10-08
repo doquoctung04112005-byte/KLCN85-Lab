@@ -1,24 +1,9 @@
-<dl class="row mb-0">
-    <dt class="col-sm-4">Tên đăng nhập</dt>
-    <dd class="col-sm-8">{{ request.user.get_username }}</dd>
-
+<dl class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tên đăng nhập</dt><dd class="mt-1 font-semibold text-gray-800">{{ request.user.get_username }}</dd></div>
     {% if profile %}
-        <dt class="col-sm-4">Vai trò</dt>
-        <dd class="col-sm-8">{{ profile.get_role_display }}</dd>
-
-        <dt class="col-sm-4">Phòng ban</dt>
-        <dd class="col-sm-8">
-            {% if profile.department %}
-                {{ profile.department.name }}
-            {% else %}
-                Chưa thuộc phòng ban
-            {% endif %}
-        </dd>
+        <div class="rounded-xl bg-gray-50 p-4"><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Vai trò</dt><dd class="mt-1 font-semibold text-gray-800">{{ profile.get_role_display }}</dd></div>
+        <div class="rounded-xl bg-gray-50 p-4 sm:col-span-2"><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Phòng ban</dt><dd class="mt-1 font-semibold text-gray-800">{% if profile.department %}{{ profile.department.name }}{% else %}Chưa thuộc phòng ban{% endif %}</dd></div>
+    {% else %}
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:col-span-2">Tài khoản chưa có hồ sơ người dùng. Quản trị viên cần bổ sung hồ sơ để hiển thị vai trò và phòng ban.</div>
     {% endif %}
 </dl>
-
-{% if not profile %}
-    <div class="alert alert-warning mb-0" role="alert">
-        Tài khoản của bạn chưa có UserProfile. Quản trị viên cần bổ sung hồ sơ để hiển thị vai trò và phòng ban.
-    </div>
-{% endif %}

@@ -1,0 +1,41 @@
+<div class="mb-2 hidden file-column-head md:grid" aria-hidden="true">
+    <span>Tên</span><span>Chủ sở hữu</span><span>Ngày sửa</span><span>Dung lượng</span><span>Chia sẻ</span><span></span>
+</div>
+<div class="file-collection" data-layout="list">
+    {% for document in documents %}
+        <article class="file-card">
+            <div class="file-main">
+                <a href="{% url 'document_detail' document.pk %}" aria-label="Mở {{ document.title }}">
+                    {% include "documents/_file_icon.html" %}
+                </a>
+                <div class="min-w-0">
+                    <a class="file-title block" href="{% url 'document_detail' document.pk %}">{{ document.title }}</a>
+                    <span class="block truncate text-xs text-gray-500">{% if document.attachment %}{{ document.attachment.display_name }}{% else %}Tài liệu văn bản{% endif %}</span>
+                </div>
+            </div>
+            <div class="file-meta file-owner truncate" title="{{ document.owner.get_username }}">{{ document.owner.get_username }}</div>
+            <div class="file-meta file-date">{{ document.updated_at|date:"d/m/Y H:i" }}</div>
+            <div class="file-meta file-size">{% if document.attachment %}{{ document.attachment.file_size|filesizeformat }}{% else %}—{% endif %}</div>
+            <div class="file-meta file-share">
+                {% if document.has_active_shares %}<span class="status-pill is-shared">Đang chia sẻ</span>{% else %}<span class="status-pill">Riêng tư</span>{% endif %}
+            </div>
+            <div class="file-actions">
+                <details>
+                    <summary aria-label="Thao tác với {{ document.title }}"><span aria-hidden="true" class="text-xl leading-none">⋯</span></summary>
+                    <div class="file-menu">
+                        <a href="{% url 'document_detail' document.pk %}">Xem chi tiết</a>
+                        {% if document.ui_can_edit %}<a href="{% url 'document_edit' document.pk %}">Sửa tài liệu</a>{% endif %}
+                        {% if document.attachment %}
+                            <a href="{% url 'document_download' document.pk %}">Tải xuống</a>
+                            {% if document.attachment.file_type == "pdf" or document.attachment.file_type == "png" or document.attachment.file_type == "jpg" or document.attachment.file_type == "jpeg" or document.attachment.file_type == "docx" or document.attachment.file_type == "xlsx" %}
+                                <a href="{% url 'document_preview' document.pk %}">Xem trước</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if document.ui_can_manage_shares %}<a href="{% url 'document_share_manage' document.pk %}">Quản lý chia sẻ</a>{% endif %}
+                        {% if document.ui_can_delete %}<a href="{% url 'document_delete' document.pk %}">Xóa tài liệu</a>{% endif %}
+                    </div>
+                </details>
+            </div>
+        </article>
+    {% endfor %}
+</div>

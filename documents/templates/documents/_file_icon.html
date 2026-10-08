@@ -1,0 +1,15 @@
+{% if document.attachment.file_type == "pdf" %}
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-xs font-bold text-red-600">PDF</span>
+{% elif document.attachment.file_type == "docx" %}
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-xs font-bold text-blue-700">W</span>
+{% elif document.attachment.file_type == "xlsx" %}
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700">X</span>
+{% elif document.attachment.file_type == "png" or document.attachment.file_type == "jpg" or document.attachment.file_type == "jpeg" %}
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4 3 2.5 2.5-2 4 3.5"/></svg>
+    </span>
+{% else %}
+    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.8h8l4 4V20H6z"/><path d="M14 4v4h4M9 13h6M9 16h6"/></svg>
+    </span>
+{% endif %}

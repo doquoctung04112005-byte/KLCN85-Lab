@@ -1,37 +1,19 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Người dùng | KLCN85{% endblock %}
+{% block title %}Người dùng | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Danh sách người dùng</h1>
-<div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead>
-            <tr>
-                <th scope="col">Tên đăng nhập</th>
-                <th scope="col">Vai trò</th>
-                <th scope="col">Phòng ban</th>
-                <th scope="col">Trạng thái</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in users %}
-                <tr>
-                    <td>{{ entry.username }}</td>
-                    <td>{{ entry.role }}</td>
-                    <td>{{ entry.department }}</td>
-                    <td>
-                        {% if entry.is_active %}
-                            Hoạt động
-                        {% else %}
-                            Không hoạt động
-                        {% endif %}
-                    </td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="4" class="text-muted">Chưa có người dùng.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<div class="mb-6"><nav class="mb-2 text-xs font-medium text-gray-500"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span>Người dùng</nav><h1 class="text-2xl font-semibold tracking-tight text-gray-900">Người dùng</h1><p class="mt-1 text-sm text-gray-500">Danh sách tài khoản và trạng thái hiện tại.</p></div>
+<section class="panel overflow-hidden">
+    <div class="border-b border-gray-100 px-5 py-4"><h2 class="font-semibold text-gray-800">Tài khoản hệ thống</h2></div>
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[620px] border-collapse text-left text-sm">
+            <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr><th class="px-5 py-3 font-semibold">Tên đăng nhập</th><th class="px-5 py-3 font-semibold">Vai trò</th><th class="px-5 py-3 font-semibold">Phòng ban</th><th class="px-5 py-3 font-semibold">Trạng thái</th></tr></thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for entry in users %}<tr class="hover:bg-gray-50"><td class="px-5 py-4 font-semibold text-gray-800">{{ entry.username }}</td><td class="px-5 py-4 text-gray-600">{{ entry.role }}</td><td class="px-5 py-4 text-gray-600">{{ entry.department }}</td><td class="px-5 py-4">{% if entry.is_active %}<span class="status-pill is-shared">Hoạt động</span>{% else %}<span class="status-pill">Không hoạt động</span>{% endif %}</td></tr>
+                {% empty %}<tr><td colspan="4" class="px-5 py-12 text-center text-gray-500">Chưa có người dùng.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 {% endblock %}

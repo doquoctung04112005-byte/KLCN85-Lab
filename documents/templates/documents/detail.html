@@ -1,35 +1,73 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}{{ document.title }} | KLCN85{% endblock %}
+{% block title %}{{ document.title }} | KLCN85 Drive{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <h1 class="h3 mb-0">{{ document.title }}</h1>
-    <div class="d-flex gap-2">
-        <a class="btn btn-outline-secondary" href="{% url 'document_list' %}">Danh sách</a>
-        {% if can_edit %}
-            <a class="btn btn-primary" href="{% url 'document_edit' document.pk %}">Sửa tài liệu</a>
-        {% endif %}
-        {% if can_delete %}
-            <a class="btn btn-outline-danger" href="{% url 'document_delete' document.pk %}">Xóa tài liệu</a>
-        {% endif %}
+<nav class="mb-3 flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'document_list' %}" class="hover:text-blue-700">Drive</a><span>/</span>{% if document.folder %}<a href="{% url 'folder_detail' document.folder.pk %}" class="hover:text-blue-700">{{ document.folder.name }}</a><span>/</span>{% endif %}<span class="text-gray-700">{{ document.title }}</span></nav>
+
+<div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <div class="flex min-w-0 items-center gap-3">
+        {% include "documents/_file_icon.html" %}
+        <div class="min-w-0"><h1 class="truncate text-2xl font-semibold tracking-tight text-gray-900">{{ document.title }}</h1><p class="mt-1 text-sm text-gray-500">{% if attachment %}{{ attachment.display_name }} · {{ attachment.file_size|filesizeformat }}{% else %}Tài liệu văn bản{% endif %}</p></div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <a class="soft-button" href="{% url 'document_list' %}">Danh sách</a>
+        {% if can_edit %}<a class="soft-button" href="{% url 'document_edit' document.pk %}">Sửa</a>{% endif %}
+        {% if can_manage_shares %}<a class="primary-button" href="{% url 'document_share_manage' document.pk %}">Chia sẻ</a>{% endif %}
+        {% if can_delete %}<a class="danger-button" href="{% url 'document_delete' document.pk %}">Xóa</a>{% endif %}
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body p-4">
-        <dl class="row">
-            <dt class="col-sm-3">Người sở hữu</dt>
-            <dd class="col-sm-9">{{ document.owner.get_username }}</dd>
-            <dt class="col-sm-3">Phòng ban</dt>
-            <dd class="col-sm-9">{{ document.department.name }}</dd>
-            <dt class="col-sm-3">Ngày tạo</dt>
-            <dd class="col-sm-9">{{ document.created_at|date:"d/m/Y H:i" }}</dd>
-            <dt class="col-sm-3">Cập nhật</dt>
-            <dd class="col-sm-9">{{ document.updated_at|date:"d/m/Y H:i" }}</dd>
-        </dl>
-        <hr>
-        <div style="white-space: pre-wrap;">{{ document.content }}</div>
-    </div>
+<div class="detail-layout grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
+    <section class="panel min-w-0 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
+            <h2 class="text-sm font-semibold text-gray-700">{% if attachment %}Xem trước{% else %}Nội dung tài liệu{% endif %}</h2>
+            {% if attachment %}<a class="soft-button !min-h-9 !text-xs" href="{% url 'document_download' document.pk %}">Tải xuống</a>{% endif %}
+        </div>
+        {% if attachment and attachment.file_type == "pdf" %}
+            <iframe class="h-[72vh] min-h-[440px] w-full bg-gray-100" src="{% url 'document_preview' document.pk %}" title="Xem trước {{ attachment.display_name }}"></iframe>
+        {% elif attachment and attachment.file_type == "png" or attachment and attachment.file_type == "jpg" or attachment and attachment.file_type == "jpeg" %}
+            <div class="grid min-h-[360px] place-items-center bg-gray-50 p-4 sm:p-8"><img class="max-h-[72vh] max-w-full rounded-lg object-contain shadow-sm" src="{% url 'document_preview' document.pk %}" alt="{{ attachment.display_name }}"></div>
+        {% elif attachment and attachment.file_type == "docx" or attachment and attachment.file_type == "xlsx" %}
+            <iframe class="h-[72vh] min-h-[440px] w-full bg-gray-100" src="{% url 'document_preview' document.pk %}" title="Xem trước {{ attachment.display_name }}"></iframe>
+        {% else %}
+            <div class="min-h-72 whitespace-pre-wrap p-5 text-sm leading-7 text-gray-700 sm:p-8">{% if document.content %}{{ document.content }}{% elif attachment %}<div class="rounded-xl bg-gray-50 p-5 text-gray-600">Tệp {{ attachment.get_file_type_display }} được lưu an toàn. Tải tệp xuống để mở trong ứng dụng phù hợp.</div>{% else %}Tài liệu chưa có nội dung.{% endif %}</div>
+        {% endif %}
+    </section>
+
+    <aside class="space-y-4">
+        <section class="panel p-5" aria-labelledby="metadata-title">
+            <h2 id="metadata-title" class="mb-4 text-sm font-semibold text-gray-800">Thông tin chi tiết</h2>
+            <dl class="space-y-4 text-sm">
+                <div><dt class="text-xs font-medium text-gray-500">Chủ sở hữu</dt><dd class="mt-1 font-medium text-gray-800">{{ document.owner.get_username }}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Phòng ban</dt><dd class="mt-1 text-gray-800">{{ document.department.name }}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Loại tệp</dt><dd class="mt-1 text-gray-800">{{ metadata.file_type|upper }}{% if not attachment %} · Nội dung{% endif %}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Dung lượng</dt><dd class="mt-1 text-gray-800">{% if attachment %}{{ metadata.file_size|filesizeformat }}{% else %}—{% endif %}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Ngày tạo</dt><dd class="mt-1 text-gray-800">{{ metadata.created_at|date:"d/m/Y H:i" }}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Cập nhật lần cuối</dt><dd class="mt-1 text-gray-800">{{ metadata.updated_at|date:"d/m/Y H:i" }}</dd></div>
+                <div><dt class="text-xs font-medium text-gray-500">Chia sẻ</dt><dd class="mt-1">{% if metadata.sharing_status == "shared_with_you" %}<span class="status-pill is-shared">Được chia sẻ với bạn</span>{% elif metadata.sharing_status == "shared" %}<span class="status-pill is-shared">Đang chia sẻ</span>{% else %}<span class="status-pill">Riêng tư</span>{% endif %}</dd></div>
+            </dl>
+        </section>
+
+        <section class="panel p-5" aria-labelledby="shares-title">
+            <div class="mb-3 flex items-center justify-between gap-2"><h2 id="shares-title" class="text-sm font-semibold text-gray-800">Lượt chia sẻ</h2>{% if can_manage_shares %}<a class="text-xs font-semibold text-blue-700 hover:underline" href="{% url 'document_share_manage' document.pk %}">Quản lý</a>{% endif %}</div>
+            {% if shares %}
+                <ul class="space-y-3">
+                    {% for share in shares %}
+                        <li class="flex items-start gap-3 border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-50 text-xs font-semibold text-blue-800">{% if share_records_visible %}{{ share.recipient.get_username|slice:":1"|upper }}{% else %}{{ share.granted_by.get_username|slice:":1"|upper }}{% endif %}</span>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-gray-800">{% if share_records_visible %}{{ share.recipient.get_username }}{% else %}{{ share.get_permission_display }} từ {{ share.granted_by.get_username }}{% endif %}</p>
+                                <p class="mt-0.5 text-xs text-gray-500">{{ share.get_permission_display }} · đến {{ share.expires_at|date:"d/m/Y H:i" }}</p>
+                                {% if share.revoked_at %}<span class="status-pill mt-2">Đã thu hồi</span>{% elif share.expires_at <= now %}<span class="status-pill is-expired mt-2">Đã hết hạn</span>{% else %}<span class="status-pill is-shared mt-2">Còn hiệu lực</span>{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-sm leading-6 text-gray-500">{% if share_records_visible %}Chưa có lượt chia sẻ nào.{% else %}Tài liệu này chưa được chia sẻ với tài khoản của bạn.{% endif %}</p>
+            {% endif %}
+        </section>
+    </aside>
 </div>
 {% endblock %}

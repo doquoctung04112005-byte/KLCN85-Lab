@@ -3,35 +3,350 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}KLCN85{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#f8f9fa">
+    <title>{% block title %}KLCN85 Drive{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { drive: "#1A73E8", canvas: "#F8F9FA" },
+                    fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: light; --drive-blue: #1A73E8; --canvas: #F8F9FA; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--canvas); color: #202124; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select, textarea { font: inherit; }
+        :focus-visible { outline: 3px solid rgba(26, 115, 232, .35); outline-offset: 2px; }
+        .app-header { min-height: 72px; }
+        .app-layout { min-height: calc(100vh - 72px); }
+        .sidebar { width: 248px; flex: 0 0 248px; }
+        .sidebar-link { display: flex; min-height: 42px; align-items: center; gap: 12px; border-radius: 0 24px 24px 0; padding: 0 18px; color: #5f6368; font-size: .9rem; font-weight: 500; transition: background .15s ease, color .15s ease; }
+        .sidebar-link:hover { background: #eef3f8; color: #202124; }
+        .sidebar-link.active { background: #e8f0fe; color: #174ea6; }
+        .sidebar-label { padding: 20px 18px 8px; color: #80868b; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .main-content { min-width: 0; flex: 1; padding: 28px clamp(16px, 3vw, 40px) 48px; }
+        .search-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #202124; }
+        .search-input:focus-visible { outline: none; }
+        .form-control, .form-select, input[type="text"], input[type="password"], input[type="email"], input[type="datetime-local"], textarea, select {
+            display: block; width: 100%; border: 1px solid #dadce0; border-radius: 10px; background: #fff; padding: 10px 12px; color: #202124; transition: border-color .15s, box-shadow .15s;
+        }
+        .form-control:focus, .form-select:focus, input:focus, textarea:focus, select:focus { border-color: var(--drive-blue); box-shadow: 0 0 0 3px rgba(26, 115, 232, .12); outline: none; }
+        input[type="file"] { padding: 8px; }
+        .field-error, .errorlist { color: #b3261e; font-size: .82rem; }
+        .errorlist { margin: 6px 0 0; padding-left: 18px; }
+        .panel { border: 1px solid #e7e9ec; border-radius: 18px; background: #fff; box-shadow: 0 1px 2px rgba(60, 64, 67, .04); }
+        .soft-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #dadce0; border-radius: 999px; background: #fff; padding: 0 16px; color: #3c4043; font-size: .88rem; font-weight: 600; transition: background .15s, box-shadow .15s, transform .15s; }
+        .soft-button:hover { background: #f1f3f4; box-shadow: 0 1px 3px rgba(60,64,67,.18); }
+        .primary-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; background: var(--drive-blue); padding: 0 18px; color: #fff; font-size: .9rem; font-weight: 600; box-shadow: 0 1px 2px rgba(26,115,232,.24); transition: background .15s, box-shadow .15s; }
+        .primary-button:hover { background: #1765cc; box-shadow: 0 2px 5px rgba(26,115,232,.28); }
+        .danger-button { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; border: 1px solid #f2c5c2; border-radius: 999px; background: #fff; padding: 0 14px; color: #b3261e; font-size: .85rem; font-weight: 600; }
+        .danger-button:hover { background: #fce8e6; }
+        .status-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 9px; background: #f1f3f4; color: #5f6368; font-size: .74rem; font-weight: 600; white-space: nowrap; }
+        .status-pill.is-shared { background: #e8f0fe; color: #174ea6; }
+        .status-pill.is-expired { background: #fef7e0; color: #8d5f00; }
+        .file-collection[data-layout="list"] .file-card { display: grid; grid-template-columns: minmax(210px, 2fr) minmax(100px, .85fr) minmax(125px, 1fr) minmax(90px, .65fr) minmax(120px, .9fr) 42px; align-items: center; gap: 14px; min-height: 66px; border-bottom: 1px solid #f0f1f2; padding: 9px 12px; }
+        .file-collection[data-layout="list"] .file-card:hover { border-radius: 12px; background: #f6fafe; }
+        .file-collection[data-layout="grid"] { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+        .file-collection[data-layout="grid"] .file-card { display: flex; min-height: 192px; flex-direction: column; justify-content: space-between; gap: 14px; border: 1px solid #e7e9ec; border-radius: 14px; padding: 16px; transition: border-color .15s, box-shadow .15s, transform .15s; }
+        .file-collection[data-layout="grid"] .file-card:hover { transform: translateY(-1px); border-color: #c7d8f4; box-shadow: 0 4px 14px rgba(60,64,67,.08); }
+        .file-collection[data-layout="grid"] .file-main { align-items: flex-start; }
+        .file-collection[data-layout="grid"] .file-meta { display: flex; flex-wrap: wrap; gap: 7px 12px; }
+        .file-collection[data-layout="grid"] .file-actions { align-self: flex-end; }
+        .file-collection[data-layout="grid"] .file-owner::before { content: "Chủ sở hữu: "; color: #80868b; }
+        .file-collection[data-layout="grid"] .file-date::before { content: "Sửa: "; color: #80868b; }
+        .file-collection[data-layout="grid"] .file-size::before { content: "Dung lượng: "; color: #80868b; }
+        .file-main { display: flex; min-width: 0; align-items: center; gap: 12px; }
+        .file-title { overflow: hidden; color: #202124; font-size: .9rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+        .file-title:hover { color: var(--drive-blue); }
+        .file-meta { min-width: 0; color: #5f6368; font-size: .78rem; }
+        .file-actions { position: relative; display: flex; justify-content: flex-end; }
+        .file-menu { position: absolute; z-index: 10; top: 38px; right: 0; min-width: 190px; border: 1px solid #e7e9ec; border-radius: 12px; background: #fff; padding: 6px; box-shadow: 0 8px 24px rgba(60,64,67,.18); }
+        .file-menu a, .file-menu button { display: block; width: 100%; border: 0; border-radius: 8px; background: transparent; padding: 9px 10px; color: #3c4043; text-align: left; font-size: .84rem; }
+        .file-menu a:hover, .file-menu button:hover { background: #f1f3f4; }
+        .file-actions details > summary { display: grid; width: 36px; height: 36px; cursor: pointer; list-style: none; place-items: center; border-radius: 50%; color: #5f6368; }
+        .file-actions details > summary::-webkit-details-marker { display: none; }
+        .file-actions details > summary:hover { background: #eef1f4; }
+        .file-column-head { display: grid; grid-template-columns: minmax(210px, 2fr) minmax(100px, .85fr) minmax(125px, 1fr) minmax(90px, .65fr) minmax(120px, .9fr) 42px; gap: 14px; padding: 12px 12px; color: #80868b; font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+        .folder-tile { display: flex; min-height: 62px; align-items: center; gap: 12px; border: 1px solid #e7e9ec; border-radius: 14px; background: #fff; padding: 12px 14px; transition: border-color .15s, background .15s, transform .15s; }
+        .folder-tile:hover { transform: translateY(-1px); border-color: #c7d8f4; background: #fbfdff; }
+        .upload-drop-zone { transition: border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+        .upload-drop-zone.is-dragging { border-color: var(--drive-blue); background: #eef5ff; box-shadow: 0 0 0 4px rgba(26,115,232,.1); }
+        .upload-drop-zone input[data-file-picker]:focus-visible + label { outline: 3px solid rgba(26,115,232,.35); outline-offset: 2px; }
+        .file-type-chip { display: inline-flex; min-height: 28px; align-items: center; gap: 6px; border: 1px solid #e8eaed; border-radius: 999px; background: #fff; padding: 3px 9px; color: #5f6368; font-size: .7rem; font-weight: 600; }
+        .file-type-pdf { color: #b3261e; }
+        .file-type-word { color: #185abc; }
+        .file-type-excel { color: #137333; }
+        .file-type-image { color: #7e57c2; }
+        .word-mark, .excel-mark { display: grid; width: 17px; height: 17px; place-items: center; border-radius: 4px; background: #185abc; color: #fff; font-size: .65rem; font-weight: 800; }
+        .excel-mark { background: #137333; }
+        .toast-message { animation: toast-in .2s ease-out; }
+        @keyframes toast-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 920px) {
+            [data-sidebar-toggle] { display: grid; }
+            .sidebar { position: fixed; z-index: 40; top: 72px; bottom: 0; left: 0; width: min(290px, 84vw); transform: translateX(-105%); transition: transform .2s ease; background: var(--canvas); box-shadow: 8px 0 28px rgba(60,64,67,.1); }
+            .app-layout.mobile-nav-open .sidebar { transform: translateX(0); }
+            .mobile-overlay { display: none; }
+            .app-layout.mobile-nav-open .mobile-overlay { position: fixed; z-index: 30; inset: 72px 0 0; display: block; background: rgba(32,33,36,.24); }
+            .main-content { padding-top: 22px; }
+        }
+        @media (max-width: 700px) {
+            .app-header { min-height: 64px; }
+            .sidebar { top: 64px; }
+            .app-layout { min-height: calc(100vh - 64px); }
+            .app-layout.mobile-nav-open .mobile-overlay { top: 64px; }
+            .header-search { order: 3; width: 100%; }
+            .header-inner { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+            .header-user-name { display: none; }
+            .main-content { padding: 18px 14px 36px; }
+            .file-column-head { display: none; }
+            .file-collection[data-layout="list"] .file-card { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 12px 6px; }
+            .file-collection[data-layout="list"] .file-main { flex: 1 1 calc(100% - 48px); }
+            .file-collection[data-layout="list"] .file-actions { order: 1; }
+            .file-collection[data-layout="list"] .file-meta { padding-left: 48px; }
+            .file-collection[data-layout="list"] .file-share { padding-left: 48px; }
+            .detail-layout { display: flex; flex-direction: column; }
+        }
+        @media (min-width: 921px) { [data-sidebar-toggle] { display: none; } }
+    </style>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container d-flex flex-wrap gap-3">
-            <a class="navbar-brand mb-0" href="{% url 'home' %}">KLCN85</a>
+<body>
+    <header class="app-header sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+        <div class="header-inner mx-auto flex h-full max-w-[1680px] items-center gap-4 px-4 sm:px-6">
             {% if request.user.is_authenticated %}
-                <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
-                    <a class="text-white text-decoration-none" href="{% url 'dashboard' %}">Dashboard</a>
-                    <a class="text-white text-decoration-none" href="{% url 'document_list' %}">Tài liệu</a>
-                    {% if request.user.profile.role == "admin" %}
-                        <a class="text-white text-decoration-none" href="{% url 'user_list' %}">Người dùng</a>
-                    {% endif %}
-                    <a class="text-white text-decoration-none" href="{% url 'profile' %}">Hồ sơ cá nhân</a>
-                    <span class="text-white-50">{{ request.user.get_username }}</span>
+                <button type="button" class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 lg:hidden" data-sidebar-toggle aria-label="Mở menu" aria-expanded="false">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+            {% endif %}
+            <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="flex shrink-0 items-center gap-2.5" aria-label="KLCN85 Drive">
+                <span class="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 4.5h7l4 4v11h-11z"/><path d="M13.5 4.5v4h4M9 13h6M9 16.5h6"/></svg>
+                </span>
+                <span class="text-[17px] font-semibold tracking-tight text-gray-700">KLCN85 <span class="font-normal text-gray-500">Drive</span></span>
+            </a>
+
+            {% if request.user.is_authenticated %}
+                <form class="header-search mx-auto flex max-w-2xl flex-1 items-center gap-2 rounded-full bg-[#F1F3F4] px-4 py-2.5 focus-within:bg-white focus-within:ring-1 focus-within:ring-blue-200" method="get" action="{% url 'document_list' %}" role="search">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+                    <input type="search" name="q" value="{{ request.GET.q|default:'' }}" class="search-input" placeholder="Tìm trong tài liệu" aria-label="Tìm trong tài liệu">
+                    {% if request.GET.scope %}<input type="hidden" name="scope" value="{{ request.GET.scope }}">{% endif %}
+                    <label class="sr-only" for="header-file-type">Lọc loại tệp</label>
+                    <select id="header-file-type" name="type" class="max-w-[115px] cursor-pointer border-0 bg-transparent py-1 text-xs text-gray-600 outline-none focus:ring-0" aria-label="Lọc loại tệp">
+                        <option value="" {% if not request.GET.type %}selected{% endif %}>Mọi loại</option>
+                        <option value="text" {% if request.GET.type == "text" %}selected{% endif %}>Nội dung</option>
+                        <option value="pdf" {% if request.GET.type == "pdf" %}selected{% endif %}>PDF</option>
+                        <option value="docx" {% if request.GET.type == "docx" %}selected{% endif %}>Word</option>
+                        <option value="xlsx" {% if request.GET.type == "xlsx" %}selected{% endif %}>Excel</option>
+                        <option value="png" {% if request.GET.type == "png" %}selected{% endif %}>PNG</option>
+                        <option value="jpg" {% if request.GET.type == "jpg" %}selected{% endif %}>JPG</option>
+                        <option value="jpeg" {% if request.GET.type == "jpeg" %}selected{% endif %}>JPEG</option>
+                    </select>
+                    <button type="submit" class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-blue-700 hover:bg-blue-100" aria-label="Tìm kiếm và lọc">
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10m-7 6h4"/></svg>
+                    </button>
+                </form>
+                <div class="ml-auto flex shrink-0 items-center gap-3">
+                    <a href="{% url 'profile' %}" class="grid h-9 w-9 place-items-center rounded-full bg-blue-100 text-sm font-semibold text-blue-800" title="Hồ sơ {{ request.user.get_username }}" aria-label="Hồ sơ cá nhân">{{ request.user.get_username|slice:":1"|upper }}</a>
+                    <span class="header-user-name hidden max-w-32 truncate text-sm font-medium text-gray-600 sm:block">{{ request.user.get_username }}</span>
                     <form method="post" action="{% url 'logout' %}" class="m-0">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-light btn-sm">Đăng xuất</button>
+                        <button type="submit" class="rounded-full px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900">Đăng xuất</button>
                     </form>
                 </div>
             {% else %}
-                <a class="btn btn-outline-light btn-sm ms-auto" href="{% url 'login' %}">Đăng nhập</a>
+                <a class="ml-auto rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" href="{% url 'login' %}">Đăng nhập</a>
             {% endif %}
         </div>
-    </nav>
+    </header>
 
-    <main class="container py-5">
-        {% block content %}{% endblock %}
+    {% if request.user.is_authenticated %}
+        <div id="app-layout" class="app-layout mx-auto flex max-w-[1680px]">
+            <aside id="app-sidebar" class="sidebar sticky top-[72px] flex h-[calc(100vh-72px)] flex-col overflow-y-auto py-5" aria-label="Điều hướng chính">
+                {% if request.user.profile.department_id %}
+                <div class="px-4 pb-5">
+                    <details class="group relative">
+                        <summary class="primary-button cursor-pointer list-none shadow-md">
+                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>Tạo mới</span>
+                            <svg viewBox="0 0 24 24" class="ml-2 h-4 w-4 transition group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 10 5 5 5-5"/></svg>
+                        </summary>
+                        <div class="absolute left-0 top-12 z-20 w-56 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl">
+                            <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50" href="{% url 'document_create' %}"><span class="text-lg text-blue-600">＋</span>Tài liệu / tải tệp</a>
+                            <a class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50" href="{% url 'folder_create' %}"><span class="text-lg text-amber-600">▰</span>Thư mục mới</a>
+                        </div>
+                    </details>
+                </div>
+                {% endif %}
+                <nav class="space-y-1 pr-3">
+                    {% with role=request.user.profile.role %}
+                        {% if role == "admin" %}
+                            <a class="sidebar-link {% if request.resolver_match.url_name == 'document_list' and request.GET.scope != 'mine' and request.GET.scope != 'shared' %}active{% endif %}" href="{% url 'document_list' %}?scope=all">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h7v6H4zM14 5h6v6h-6zM4 14h7v5H4zM14 14h6v5h-6z"/></svg> Tất cả tài liệu
+                            </a>
+                            <a class="sidebar-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}" href="{% url 'user_list' %}">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.5-3.4 2.2-5 5.5-5s5 1.6 5.5 5M16 5.5a3 3 0 0 1 0 5.8M17 14c2.2.5 3.4 2 3.7 4.5"/></svg> Người dùng
+                            </a>
+                        {% else %}
+                            <a class="sidebar-link {% if request.resolver_match.url_name == 'document_list' and request.GET.scope == 'mine' %}active{% endif %}" href="{% url 'document_list' %}?scope=mine">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.8h8l4 4V20H6z"/><path d="M14 4v4h4M9 13h6M9 16h6"/></svg> Tệp của tôi
+                            </a>
+                            <a class="sidebar-link {% if request.resolver_match.url_name == 'document_list' and request.GET.scope == 'shared' %}active{% endif %}" href="{% url 'document_list' %}?scope=shared">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.3 10.8 7.3-4.5M8.3 13.2l7.3 4.5"/></svg> Được chia sẻ với tôi
+                            </a>
+                            {% if role == "department_head" %}
+                                <a class="sidebar-link {% if request.resolver_match.url_name == 'document_list' and request.GET.scope == 'department' %}active{% endif %}" href="{% url 'document_list' %}?scope=department">
+                                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 20h17M5 20V8l7-4 7 4v12M9 12h2m2 0h2m-6 4h2m2 0h2"/></svg> Tài liệu phòng ban
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    {% endwith %}
+                </nav>
+                <div class="sidebar-label">Không gian</div>
+                <nav class="space-y-1 pr-3">
+                    <a class="sidebar-link {% if request.resolver_match.url_name == 'folder_list' or request.resolver_match.url_name == 'folder_detail' %}active{% endif %}" href="{% url 'folder_list' %}">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5h7l2 2h8v9h-17z"/><path d="M3.5 7.5V5.8h7l2 1.7"/></svg> Thư mục
+                    </a>
+                    <a class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h7V4H4zM15 20h5v-9h-5zM15 7h5V4h-5zM4 20h7v-3H4z"/></svg> Tổng quan
+                    </a>
+                    <a class="sidebar-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.7-4.2 3-6.2 7.5-6.2s6.8 2 7.5 6.2"/></svg> Hồ sơ cá nhân
+                    </a>
+                </nav>
+                <div class="mt-auto px-5 pt-8 text-xs leading-5 text-gray-400">KLCN85 Drive<br>Không gian lưu trữ nội bộ</div>
+            </aside>
+            <button type="button" class="mobile-overlay" data-sidebar-close aria-label="Đóng menu"></button>
+            <main class="main-content">
+    {% else %}
+        <main class="mx-auto min-h-[calc(100vh-72px)] max-w-[1120px] px-4 py-8 sm:px-6 sm:py-14">
+    {% endif %}
+    {% if messages %}
+        <div class="mb-5 space-y-2" aria-live="polite">
+            {% for message in messages %}
+                <div class="toast-message flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm {% if message.tags == 'error' %}border-red-200 bg-red-50 text-red-800{% else %}border-blue-100 bg-blue-50 text-blue-900{% endif %}" role="status">
+                    <span>{{ message }}</span>
+                    <button type="button" class="shrink-0 text-lg leading-none opacity-60 hover:opacity-100" data-dismiss aria-label="Đóng thông báo">×</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% block content %}{% endblock %}
     </main>
+    {% if request.user.is_authenticated %}</div>{% endif %}
+    <script>
+        (() => {
+            const layout = document.getElementById("app-layout");
+            document.querySelectorAll("[data-sidebar-toggle]").forEach((button) => button.addEventListener("click", () => {
+                const open = layout.classList.toggle("mobile-nav-open");
+                button.setAttribute("aria-expanded", String(open));
+            }));
+            document.querySelectorAll("[data-sidebar-close]").forEach((button) => button.addEventListener("click", () => layout.classList.remove("mobile-nav-open")));
+            document.querySelectorAll("[data-dismiss]").forEach((button) => button.addEventListener("click", () => button.closest("[role='status']")?.remove()));
+            document.querySelectorAll("[data-layout-toggle]").forEach((button) => button.addEventListener("click", () => {
+                const collection = document.querySelector(".file-collection");
+                if (!collection) return;
+                collection.dataset.layout = button.dataset.layoutToggle;
+                const columns = document.querySelector(".file-column-head");
+                if (columns) columns.style.display = button.dataset.layoutToggle === "grid" ? "none" : "";
+                document.querySelectorAll("[data-layout-toggle]").forEach((control) => {
+                    control.setAttribute("aria-pressed", String(control === button));
+                    control.classList.toggle("bg-blue-50", control === button);
+                    control.classList.toggle("text-blue-700", control === button);
+                });
+            }));
+            const uploadInput = document.querySelector("[data-file-picker]");
+            const dropZone = document.getElementById("upload-drop-zone");
+            const fileCard = document.getElementById("selected-file-card");
+            const preview = document.getElementById("selected-file-preview");
+            let previewUrl = null;
+            const clearFilePreview = () => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+                preview.replaceChildren();
+                preview.classList.add("hidden");
+            };
+            const formatBytes = (size) => size < 1024 * 1024 ? `${Math.ceil(size / 1024)} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`;
+            const showSelectedFile = (file) => {
+                clearFilePreview();
+                if (!file) { fileCard.classList.add("hidden"); return; }
+                const extension = file.name.split(".").pop().toLowerCase();
+                const types = { pdf: ["PDF", "bg-red-50 text-red-700"], docx: ["W", "bg-blue-50 text-blue-700"], xlsx: ["X", "bg-emerald-50 text-emerald-700"], png: ["IMG", "bg-violet-50 text-violet-700"], jpg: ["IMG", "bg-violet-50 text-violet-700"], jpeg: ["IMG", "bg-violet-50 text-violet-700"] };
+                const selectedType = types[extension];
+                const icon = document.getElementById("selected-file-icon");
+                const message = document.getElementById("selected-file-message");
+                icon.textContent = selectedType ? selectedType[0] : "?";
+                icon.className = `grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold ${selectedType ? selectedType[1] : "bg-gray-100 text-gray-600"}`;
+                document.getElementById("selected-file-name").textContent = file.name;
+                document.getElementById("selected-file-meta").textContent = `${selectedType ? extension.toUpperCase() : "Không hỗ trợ"} · ${formatBytes(file.size)}`;
+                message.classList.add("hidden");
+                if (!selectedType) {
+                    message.textContent = "Định dạng này chưa được hỗ trợ. Chọn PDF, DOCX, XLSX, PNG, JPG hoặc JPEG.";
+                    message.classList.remove("hidden");
+                } else if (file.size > 20 * 1024 * 1024) {
+                    message.textContent = "Tệp vượt quá giới hạn 20 MB.";
+                    message.classList.remove("hidden");
+                } else if (["pdf", "png", "jpg", "jpeg"].includes(extension)) {
+                    previewUrl = URL.createObjectURL(file);
+                    preview.classList.remove("hidden");
+                    if (extension === "pdf") {
+                        const frame = document.createElement("iframe");
+                        frame.src = previewUrl;
+                        frame.title = `Xem trước ${file.name}`;
+                        frame.className = "h-80 w-full bg-gray-100";
+                        preview.append(frame);
+                    } else {
+                        const image = document.createElement("img");
+                        image.src = previewUrl;
+                        image.alt = `Xem trước ${file.name}`;
+                        image.className = "mx-auto max-h-80 max-w-full object-contain p-2";
+                        preview.append(image);
+                    }
+                } else if (selectedType) {
+                    message.textContent = "Tệp Word/Excel đã được nhận diện. Sau khi lưu, dùng nút Tải xuống để mở bằng ứng dụng phù hợp.";
+                    message.classList.remove("hidden");
+                }
+                fileCard.classList.remove("hidden");
+            };
+            if (uploadInput && dropZone) {
+                uploadInput.addEventListener("change", () => showSelectedFile(uploadInput.files[0]));
+                document.getElementById("clear-selected-file").addEventListener("click", () => {
+                    uploadInput.value = "";
+                    showSelectedFile(null);
+                });
+                ["dragenter", "dragover"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropZone.classList.add("is-dragging");
+                }));
+                ["dragleave", "drop"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropZone.classList.remove("is-dragging");
+                }));
+                dropZone.addEventListener("drop", (event) => {
+                    if (!event.dataTransfer.files.length) return;
+                    uploadInput.files = event.dataTransfer.files;
+                    uploadInput.dispatchEvent(new Event("change", { bubbles: true }));
+                });
+                window.addEventListener("beforeunload", clearFilePreview, { once: true });
+            }
+            const folderNameInput = document.querySelector('input[name="name"]');
+            const folderNamePreview = document.getElementById("folder-name-preview");
+            if (folderNameInput && folderNamePreview) {
+                const updateFolderPreview = () => {
+                    folderNamePreview.textContent = folderNameInput.value.trim() || "Thư mục mới";
+                };
+                folderNameInput.addEventListener("input", updateFolderPreview);
+                updateFolderPreview();
+            }
+            document.querySelectorAll(".toast-message").forEach((toast) => setTimeout(() => toast.remove(), 7000));
+        })();
+    </script>
 </body>
 </html>

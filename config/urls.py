@@ -10,6 +10,7 @@ urlpatterns = [
     path("", RedirectView.as_view(pattern_name="dashboard", permanent=False), name="home"),
     path("admin/", admin.site.urls),
     path("documents/", include("documents.urls")),
+    path("sharing/", include("sharing.urls")),
     path("users/", account_views.user_list, name="user_list"),
     path(
         "login/",

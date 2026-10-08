@@ -1,0 +1,32 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}{{ heading }} | KLCN85 Drive{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl">
+    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'document_list' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><a href="{% url 'folder_list' %}" class="hover:text-blue-700">Thư mục</a><span class="mx-2">/</span>{{ heading }}</nav>
+    <div class="mb-6"><h1 class="text-2xl font-semibold tracking-tight text-gray-900">{{ heading }}</h1><p class="mt-1 text-sm text-gray-500">Thư mục được gắn với chủ sở hữu và phòng ban hiện tại.</p></div>
+    <section class="panel p-5 sm:p-7">
+        <div class="mb-5 rounded-2xl bg-gray-50 p-4" aria-live="polite">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Xem trước thư mục</p>
+            <div class="folder-tile border-white shadow-sm">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5h7l2 2h8v9h-17z"/><path d="M3.5 7.5V5.8h7l2 1.7"/></svg></span>
+                <span id="folder-name-preview" class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{% if folder %}{{ folder.name }}{% else %}Thư mục mới{% endif %}</span>
+                <span class="text-xs text-gray-400">Chỉ bạn thấy bản xem trước này</span>
+            </div>
+        </div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+                <div class="mb-5">
+                    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-gray-700">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<p class="field-error mt-1">{{ error }}</p>{% endfor %}
+                </div>
+            {% endfor %}
+            <div class="flex flex-wrap gap-2"><button class="primary-button" type="submit">Lưu thư mục</button><a class="soft-button" href="{% if folder %}{% url 'folder_detail' folder.pk %}{% else %}{% url 'folder_list' %}{% endif %}">Hủy</a></div>
+        </form>
+    </section>
+</div>
+{% endblock %}

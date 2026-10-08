@@ -1,0 +1,58 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}{{ folder.name }} | KLCN85 Drive{% endblock %}
+
+{% block content %}
+<nav class="mb-3 flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500" aria-label="Đường dẫn thư mục">
+    <a href="{% url 'document_list' %}" class="hover:text-blue-700">Drive</a><span>/</span>
+    <a href="{% url 'folder_list' %}" class="hover:text-blue-700">Thư mục</a>
+    {% for ancestor in ancestors %}<span>/</span><a href="{% url 'folder_detail' ancestor.pk %}" class="hover:text-blue-700">{{ ancestor.name }}</a>{% endfor %}
+    <span>/</span><span class="text-gray-700">{{ folder.name }}</span>
+</nav>
+
+<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="flex items-center gap-3">
+        <span class="grid h-12 w-12 place-items-center rounded-2xl bg-amber-50 text-amber-700"><svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3.5 7.5h7l2 2h8v9h-17z"/><path d="M3.5 7.5V5.8h7l2 1.7"/></svg></span>
+        <div><h1 class="text-2xl font-semibold tracking-tight text-gray-900">{{ folder.name }}</h1><p class="mt-1 text-sm text-gray-500">Thư mục · cập nhật {{ folder.updated_at|date:"d/m/Y H:i" }}</p></div>
+    </div>
+    {% if can_manage %}
+        <div class="flex flex-wrap gap-2">
+            <a class="soft-button" href="{% url 'folder_manage' folder.pk %}">Đổi tên / di chuyển</a>
+            <a class="primary-button" href="{% url 'folder_create' %}?parent={{ folder.pk }}">＋ Thư mục con</a>
+            <a class="primary-button" href="{% url 'document_create' %}">＋ Tải tệp / tạo tài liệu</a>
+        </div>
+    {% endif %}
+</div>
+
+{% if children %}
+    <section class="mb-7" aria-labelledby="child-folders-title">
+        <h2 id="child-folders-title" class="mb-3 text-sm font-semibold text-gray-700">Thư mục con</h2>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {% for child in children %}
+                <a class="folder-tile" href="{% url 'folder_detail' child.pk %}">
+                    <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5h7l2 2h8v9h-17z"/></svg></span>
+                    <span class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{{ child.name }}</span>
+                    <svg viewBox="0 0 24 24" class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+<section class="panel" aria-labelledby="folder-files-title">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:px-5">
+        <div><h2 id="folder-files-title" class="font-semibold text-gray-800">Tài liệu trong thư mục</h2><p class="mt-0.5 text-xs text-gray-500">Tài liệu hiển thị theo quyền truy cập của bạn</p></div>
+        <form method="get" class="flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="folder-query">Tìm theo tên</label><input id="folder-query" name="q" value="{{ query }}" type="search" placeholder="Tìm trong thư mục" class="!w-44 !rounded-full !py-2 !text-xs">
+            <label class="sr-only" for="folder-type">Loại tệp</label>
+            <select id="folder-type" name="type" class="!w-auto !rounded-full !py-2 !text-xs">
+                <option value="">Mọi loại</option><option value="text" {% if file_type == "text" %}selected{% endif %}>Nội dung</option><option value="pdf" {% if file_type == "pdf" %}selected{% endif %}>PDF</option><option value="docx" {% if file_type == "docx" %}selected{% endif %}>Word</option><option value="xlsx" {% if file_type == "xlsx" %}selected{% endif %}>Excel</option><option value="png" {% if file_type == "png" %}selected{% endif %}>PNG</option><option value="jpg" {% if file_type == "jpg" %}selected{% endif %}>JPG</option><option value="jpeg" {% if file_type == "jpeg" %}selected{% endif %}>JPEG</option>
+            </select>
+            <label class="sr-only" for="folder-sort">Sắp xếp</label><select id="folder-sort" name="sort" class="!w-auto !rounded-full !py-2 !text-xs"><option value="recent" {% if sort != "oldest" %}selected{% endif %}>Mới cập nhật</option><option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Cũ cập nhật</option></select>
+            <button class="soft-button !min-h-9 !px-3 !text-xs" type="submit">Lọc</button>
+        </form>
+    </div>
+    {% if documents %}<div class="px-3 pb-3 sm:px-5 sm:pb-5">{% include "documents/_document_collection.html" %}</div>
+    {% else %}<div class="px-5 py-14 text-center"><h3 class="font-semibold text-gray-800">Thư mục đang trống</h3><p class="mt-1 text-sm text-gray-500">Tạo tài liệu hoặc tải tệp lên để bắt đầu sắp xếp.</p>{% if can_manage %}<a class="primary-button mt-4" href="{% url 'document_create' %}">Tải tệp / tạo tài liệu</a>{% endif %}</div>{% endif %}
+</section>
+{% endblock %}
