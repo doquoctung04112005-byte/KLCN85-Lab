@@ -31,6 +31,26 @@ class AuthenticationFlowTests(TestCase):
             department=other_department,
         )
 
+        cls.department_head = get_user_model().objects.create_user(
+            username="department_head",
+            password="TestPass123!",
+        )
+        UserProfile.objects.create(
+            user=cls.department_head,
+            role=UserProfile.Role.DEPARTMENT_HEAD,
+            department=cls.department,
+        )
+
+        cls.admin = get_user_model().objects.create_user(
+            username="navigation_admin",
+            password="TestPass123!",
+        )
+        UserProfile.objects.create(
+            user=cls.admin,
+            role=UserProfile.Role.ADMIN,
+            department=None,
+        )
+
         cls.user_without_profile = get_user_model().objects.create_user(
             username="missing_profile",
             password="TestPass123!",
@@ -81,6 +101,26 @@ class AuthenticationFlowTests(TestCase):
                 self.assertEqual(page.status_code, 200)
                 self.assertContains(page, "missing_profile")
                 self.assertContains(page, "Quản trị viên cần bổ sung hồ sơ")
+
+    def test_sidebar_navigation_matches_role_and_logout_uses_post(self):
+        cases = (
+            (self.user, ("?scope=mine", "?scope=shared"), ("?scope=department", "?scope=all", "/users/")),
+            (self.department_head, ("?scope=mine", "?scope=shared", "?scope=department"), ("?scope=all", "/users/")),
+            (self.admin, ("?scope=all", "/users/"), ("?scope=mine", "?scope=shared", "?scope=department")),
+            (self.user_without_profile, (), ("?scope=mine", "?scope=shared", "?scope=department", "?scope=all", "/users/")),
+        )
+        for user, visible_links, hidden_links in cases:
+            with self.subTest(username=user.username):
+                self.client.force_login(user)
+                response = self.client.get(reverse("dashboard"))
+                self.assertEqual(response.status_code, 200)
+                for link in visible_links:
+                    self.assertContains(response, link)
+                for link in hidden_links:
+                    self.assertNotContains(response, link)
+                self.assertContains(response, f'action="{reverse("logout")}"')
+                self.assertContains(response, 'method="post"')
+                self.assertContains(response, 'name="csrfmiddlewaretoken"')
 
     def test_logout_requires_post_and_clears_session(self):
         client = Client(enforce_csrf_checks=True)

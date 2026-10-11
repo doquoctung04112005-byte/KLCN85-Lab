@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_http_methods
 
+from audit.services import record_event
 from accounts.models import UserProfile
 
 from .folder_forms import DocumentFolderForm
@@ -51,7 +52,16 @@ def folder_list(request):
 @require_GET
 def folder_detail(request, folder_pk):
     profile = get_user_profile(request.user)
-    folder = get_object_or_404(_visible_folders(request.user, profile), pk=folder_pk)
+    folder = _visible_folders(request.user, profile).filter(pk=folder_pk).first()
+    if folder is None:
+        record_event(
+            actor=request.user,
+            action="folder.view",
+            object_type="folder",
+            object_id=folder_pk,
+            result="denied",
+        )
+        raise Http404
     children = DocumentFolder.objects.filter(
         parent=folder,
         owner_id=folder.owner_id,
@@ -69,7 +79,7 @@ def folder_detail(request, folder_pk):
         parent = parent.parent
     ancestors.reverse()
 
-    return render(
+    response = render(
         request,
         "documents/folder_detail.html",
         {
@@ -78,11 +88,25 @@ def folder_detail(request, folder_pk):
             "documents": documents,
             "ancestors": ancestors,
             "can_manage": _can_manage_folder(request.user, profile, folder),
+            "can_add_contents": bool(
+                profile
+                and profile.department_id
+                and folder.owner_id == request.user.pk
+                and folder.department_id == profile.department_id
+            ),
             "query": query,
             "file_type": file_type,
             "sort": sort,
         },
     )
+    record_event(
+        actor=request.user,
+        action="folder.view",
+        object_type="folder",
+        object_id=folder.pk,
+        result="allowed",
+    )
+    return response
 
 
 @login_required
@@ -91,6 +115,13 @@ def folder_detail(request, folder_pk):
 def folder_create(request):
     profile = get_user_profile(request.user)
     if not profile or not profile.department_id:
+        record_event(
+            actor=request.user,
+            action="folder.create",
+            object_type="folder",
+            object_id="new",
+            result="denied",
+        )
         return render(
             request,
             "documents/access_denied.html",
@@ -109,6 +140,13 @@ def folder_create(request):
             folder.owner = request.user
             folder.department = profile.department
             folder.save()
+            record_event(
+                actor=request.user,
+                action="folder.create",
+                object_type="folder",
+                object_id=folder.pk,
+                result="success",
+            )
             messages.success(request, "Thư mục đã được tạo.")
             if folder.parent_id:
                 return redirect("folder_detail", folder_pk=folder.parent_id)
@@ -117,6 +155,12 @@ def folder_create(request):
         initial = {}
         parent_id = request.GET.get("parent")
         if parent_id:
+            try:
+                parent_id = int(parent_id)
+            except (TypeError, ValueError):
+                raise Http404
+            if parent_id <= 0:
+                raise Http404
             initial["parent"] = get_object_or_404(
                 DocumentFolder.objects.filter(
                     owner=request.user,
@@ -147,6 +191,13 @@ def folder_manage(request, folder_pk):
         pk=folder_pk,
     )
     if not _can_manage_folder(request.user, profile, folder):
+        record_event(
+            actor=request.user,
+            action="folder.manage",
+            object_type="folder",
+            object_id=folder.pk,
+            result="denied",
+        )
         raise Http404
 
     if request.method == "POST":
@@ -158,6 +209,13 @@ def folder_manage(request, folder_pk):
         )
         if form.is_valid():
             form.save()
+            record_event(
+                actor=request.user,
+                action="folder.manage",
+                object_type="folder",
+                object_id=folder.pk,
+                result="success",
+            )
             messages.success(request, "Thư mục đã được cập nhật.")
             return redirect("folder_detail", folder_pk=folder.pk)
     else:

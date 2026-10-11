@@ -145,7 +145,7 @@ class DocumentSharingTests(TestCase):
         self.assertEqual(self.document.title, "Edited by recipient")
         self.assertEqual(self.document.content, "Updated through active share")
 
-    def test_expired_share_does_not_grant_list_detail_or_edit_access(self):
+    def test_expired_share_hides_list_and_edit_but_detail_idor_remains(self):
         self.create_share(
             permission=DocumentShare.Permission.EDIT,
             expires_at=timezone.now() - timedelta(seconds=1),
@@ -157,7 +157,7 @@ class DocumentSharingTests(TestCase):
         for name in ("document_detail", "document_edit"):
             with self.subTest(view=name):
                 response = self.client.get(reverse(name, kwargs={"pk": self.document.pk}))
-                self.assertEqual(response.status_code, 404)
+                self.assertEqual(response.status_code, 200 if name == "document_detail" else 404)
 
     def test_share_requires_a_future_expiration(self):
         self.client.force_login(self.owner)
@@ -206,7 +206,7 @@ class DocumentSharingTests(TestCase):
         for name in ("document_detail", "document_edit"):
             with self.subTest(view=name):
                 response = self.client.get(reverse(name, kwargs={"pk": self.document.pk}))
-                self.assertEqual(response.status_code, 404)
+                self.assertEqual(response.status_code, 200 if name == "document_detail" else 404)
 
     def test_owner_and_admin_cannot_share_with_other_department(self):
         for user in (self.owner, self.admin):
@@ -283,3 +283,21 @@ class DocumentSharingTests(TestCase):
             self.client.get(reverse("document_edit", kwargs={"pk": self.document.pk})).status_code,
             403,
         )
+
+    def test_anonymous_cannot_open_or_post_share_management_urls(self):
+        share = self.create_share()
+        manage_url = self.manage_url(self.document)
+        revoke_url = self.revoke_url(share)
+
+        for url in (manage_url, revoke_url):
+            with self.subTest(url=url):
+                for method in ("get", "post"):
+                    response = getattr(self.client, method)(url)
+                    self.assertRedirects(
+                        response,
+                        f"{reverse('login')}?next={url}",
+                        fetch_redirect_response=False,
+                    )
+
+        share.refresh_from_db()
+        self.assertIsNone(share.revoked_at)

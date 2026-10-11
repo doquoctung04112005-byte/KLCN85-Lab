@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods, require_POST
 
+from audit.services import record_event
 from documents.models import Document
 from documents.policies import (
     can_manage_document_shares,
@@ -36,6 +37,13 @@ def manage_document_shares(request, document_pk):
     )
     profile = get_user_profile(request.user)
     if not can_manage_document_shares(request.user, profile, document):
+        record_event(
+            actor=request.user,
+            action="sharing.manage",
+            object_type="document",
+            object_id=document.pk,
+            result="denied",
+        )
         return _access_denied(request)
 
     if request.method == "POST":
@@ -45,6 +53,13 @@ def manage_document_shares(request, document_pk):
             share.document = document
             share.granted_by = request.user
             share.save()
+            record_event(
+                actor=request.user,
+                action="sharing.grant",
+                object_type="document",
+                object_id=document.pk,
+                result="success",
+            )
             messages.success(request, "Đã cấp quyền chia sẻ tài liệu.")
             return redirect("document_share_manage", document_pk=document.pk)
     else:
@@ -78,11 +93,25 @@ def revoke_document_share(request, share_pk):
     )
     profile = get_user_profile(request.user)
     if not can_revoke_document_share(request.user, profile, share):
+        record_event(
+            actor=request.user,
+            action="sharing.revoke",
+            object_type="document",
+            object_id=share.document_id,
+            result="denied",
+        )
         return _access_denied(request)
 
     if share.revoked_at is None:
         share.revoked_at = timezone.now()
         share.save(update_fields=["revoked_at"])
+        record_event(
+            actor=request.user,
+            action="sharing.revoke",
+            object_type="document",
+            object_id=share.document_id,
+            result="success",
+        )
         messages.success(request, "Đã thu hồi lượt chia sẻ.")
 
     return redirect("document_share_manage", document_pk=share.document_id)

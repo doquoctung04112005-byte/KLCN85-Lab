@@ -33,6 +33,12 @@
         {% else %}
             <div class="min-h-72 whitespace-pre-wrap p-5 text-sm leading-7 text-gray-700 sm:p-8">{% if document.content %}{{ document.content }}{% elif attachment %}<div class="rounded-xl bg-gray-50 p-5 text-gray-600">Tệp {{ attachment.get_file_type_display }} được lưu an toàn. Tải tệp xuống để mở trong ứng dụng phù hợp.</div>{% else %}Tài liệu chưa có nội dung.{% endif %}</div>
         {% endif %}
+        {% if attachment and document.content %}
+            <div class="border-t border-gray-100 p-5 sm:p-8">
+                <h3 class="mb-2 text-sm font-semibold text-gray-800">Nội dung tài liệu</h3>
+                <p class="whitespace-pre-wrap text-sm leading-7 text-gray-700">{{ document.content }}</p>
+            </div>
+        {% endif %}
     </section>
 
     <aside class="space-y-4">

@@ -111,16 +111,14 @@ class DayFiveDocumentAccessTests(TestCase):
                 for document in self.all_documents:
                     detail = self.client.get(self.detail_url(document))
                     edit = self.client.get(self.edit_url(document))
+                    self.assertEqual(detail.status_code, 200)
+                    self.assertContains(detail, document.content)
                     if document in visible:
-                        self.assertEqual(detail.status_code, 200)
-                        self.assertContains(detail, document.content)
                         self.assertEqual(
                             edit.status_code, 200 if document in editable else 403
                         )
                     else:
-                        self.assertEqual(detail.status_code, 404)
                         self.assertEqual(edit.status_code, 404)
-                        self.assertNotIn(document.content, detail.content.decode())
                         self.assertNotIn(document.content, edit.content.decode())
                 self.client.logout()
 

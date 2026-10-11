@@ -18,8 +18,10 @@
     {% if can_manage %}
         <div class="flex flex-wrap gap-2">
             <a class="soft-button" href="{% url 'folder_manage' folder.pk %}">Đổi tên / di chuyển</a>
+            {% if can_add_contents %}
             <a class="primary-button" href="{% url 'folder_create' %}?parent={{ folder.pk }}">＋ Thư mục con</a>
-            <a class="primary-button" href="{% url 'document_create' %}">＋ Tải tệp / tạo tài liệu</a>
+            <a class="primary-button" href="{% url 'document_create' %}?folder={{ folder.pk }}">＋ Tải tệp / tạo tài liệu</a>
+            {% endif %}
         </div>
     {% endif %}
 </div>
@@ -53,6 +55,6 @@
         </form>
     </div>
     {% if documents %}<div class="px-3 pb-3 sm:px-5 sm:pb-5">{% include "documents/_document_collection.html" %}</div>
-    {% else %}<div class="px-5 py-14 text-center"><h3 class="font-semibold text-gray-800">Thư mục đang trống</h3><p class="mt-1 text-sm text-gray-500">Tạo tài liệu hoặc tải tệp lên để bắt đầu sắp xếp.</p>{% if can_manage %}<a class="primary-button mt-4" href="{% url 'document_create' %}">Tải tệp / tạo tài liệu</a>{% endif %}</div>{% endif %}
+    {% else %}<div class="px-5 py-14 text-center"><h3 class="font-semibold text-gray-800">Thư mục đang trống</h3><p class="mt-1 text-sm text-gray-500">Tạo tài liệu hoặc tải tệp lên để bắt đầu sắp xếp.</p>{% if can_add_contents %}<a class="primary-button mt-4" href="{% url 'document_create' %}?folder={{ folder.pk }}">Tải tệp / tạo tài liệu</a>{% endif %}</div>{% endif %}
 </section>
 {% endblock %}

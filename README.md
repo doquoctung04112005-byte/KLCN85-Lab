@@ -37,3 +37,7 @@ Sau khi PostgreSQL chạy, áp dụng migration, kiểm tra cấu hình và ch�
 .\.venv\Scripts\python.exe manage.py check
 .\.venv\Scripts\python.exe manage.py runserver
 ```
+
+## Đường dẫn dùng ID số
+
+Sau khi chạy migration, tài liệu và thư mục có ID số tăng dần. Ví dụ: `/documents/1/` và `/documents/folders/1/`. Các liên kết UUID cũ không còn khớp URL mới. Trong bản lab, các URL chi tiết, tải xuống và xem trước tài liệu cố ý thiếu kiểm tra quyền xem đối tượng để minh họa IDOR; xem `docs/idor-bola-lab.md`.

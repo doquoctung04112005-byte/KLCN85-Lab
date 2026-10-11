@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="mx-auto max-w-3xl">
-    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'document_list' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><span>{% if is_edit %}Sửa tài liệu{% else %}Tạo tài liệu{% endif %}</span></nav>
+    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'document_list' %}" class="hover:text-blue-700">Drive</a>{% if default_folder %}<span class="mx-2">/</span><a href="{% url 'folder_detail' default_folder.pk %}" class="hover:text-blue-700">{{ default_folder.name }}</a>{% endif %}<span class="mx-2">/</span><span>{% if is_edit %}Sửa tài liệu{% else %}Tạo tài liệu{% endif %}</span></nav>
     <div class="mb-6"><h1 class="text-2xl font-semibold tracking-tight text-gray-900">{% if is_edit %}Sửa tài liệu{% else %}Tạo tài liệu{% endif %}</h1><p class="mt-1 text-sm text-gray-500">Lưu nội dung văn bản hoặc đính kèm một tệp được hỗ trợ.</p></div>
     <section class="panel p-5 sm:p-7">
         <form method="post" enctype="multipart/form-data" novalidate>
@@ -47,7 +47,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <button class="primary-button" type="submit">{% if is_edit %}Lưu thay đổi{% else %}Tạo tài liệu{% endif %}</button>
-                {% if is_edit %}<a class="soft-button" href="{% url 'document_detail' document.pk %}">Hủy</a>{% else %}<a class="soft-button" href="{% url 'document_list' %}">Hủy</a>{% endif %}
+                {% if is_edit %}<a class="soft-button" href="{% url 'document_detail' document.pk %}">Hủy</a>{% elif default_folder %}<a class="soft-button" href="{% url 'folder_detail' default_folder.pk %}">Hủy</a>{% else %}<a class="soft-button" href="{% url 'document_list' %}">Hủy</a>{% endif %}
             </div>
         </form>
     </section>

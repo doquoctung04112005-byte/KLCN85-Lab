@@ -5,7 +5,7 @@ from . import views
 
 urlpatterns = [
     path(
-        "documents/<uuid:document_pk>/",
+        "documents/<int:document_pk>/",
         views.manage_document_shares,
         name="document_share_manage",
     ),

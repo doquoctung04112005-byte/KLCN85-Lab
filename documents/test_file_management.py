@@ -159,6 +159,30 @@ class DocumentFileAndFolderTests(TestCase):
         self.assertEqual(preview["Content-Type"], "application/pdf")
         self.assertIn("inline", preview["Content-Disposition"])
 
+    def test_idor_on_normal_detail_renders_foreign_document_and_inline_pdf(self):
+        self.attach_pdf(self.other_document)
+        detail_url = reverse("document_detail", kwargs={"pk": self.other_document.pk})
+        preview_url = reverse("document_preview", kwargs={"pk": self.other_document.pk})
+        self.client.force_login(self.owner)
+
+        detail = self.client.get(detail_url)
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, self.other_document.title)
+        self.assertContains(detail, self.other_document.content)
+        self.assertContains(detail, self.other_department_user.username)
+        self.assertContains(detail, f'src="{preview_url}"')
+
+        preview = self.client.get(preview_url)
+        self.assertEqual(preview.status_code, 200)
+        self.track_response_file(preview)
+        self.assertEqual(preview["Content-Type"], "application/pdf")
+        self.assertIn("inline", preview["Content-Disposition"])
+        self.assertTrue(b"".join(preview.streaming_content).startswith(b"%PDF-"))
+
+        self.client.logout()
+        self.assertEqual(self.client.get(detail_url).status_code, 302)
+        self.assertEqual(self.client.get(preview_url).status_code, 302)
+
     def test_invalid_upload_shows_clear_error_and_keeps_existing_data(self):
         self.client.force_login(self.owner)
         response = self.client.post(
@@ -176,14 +200,16 @@ class DocumentFileAndFolderTests(TestCase):
         self.document.refresh_from_db()
         self.assertEqual(self.document.content, "Existing text content")
 
-    def test_active_share_allows_download_but_expired_revoked_and_other_user_do_not(self):
+    def test_download_and_preview_idor_ignore_share_status_for_logged_in_users(self):
         self.attach_pdf()
         download_url = reverse("document_download", kwargs={"pk": self.document.pk})
         preview_url = reverse("document_preview", kwargs={"pk": self.document.pk})
 
         self.client.force_login(self.other_department_user)
-        self.assertEqual(self.client.get(download_url).status_code, 404)
-        self.assertEqual(self.client.get(preview_url).status_code, 404)
+        for url in (download_url, preview_url):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.track_response_file(response)
 
         share = DocumentShare.objects.create(
             document=self.document,
@@ -202,15 +228,34 @@ class DocumentFileAndFolderTests(TestCase):
 
         share.expires_at = timezone.now() - timedelta(seconds=1)
         share.save(update_fields=["expires_at"])
-        self.assertEqual(self.client.get(download_url).status_code, 404)
+        response = self.client.get(download_url)
+        self.assertEqual(response.status_code, 200)
+        self.track_response_file(response)
 
         share.expires_at = timezone.now() + timedelta(days=1)
         share.revoked_at = timezone.now()
         share.save(update_fields=["expires_at", "revoked_at"])
-        self.assertEqual(self.client.get(download_url).status_code, 404)
-        self.assertEqual(self.client.get(preview_url).status_code, 404)
+        for url in (download_url, preview_url):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.track_response_file(response)
 
-    def test_image_and_office_previews_are_inline_and_recheck_view_permissions(self):
+    def test_anonymous_cannot_open_direct_download_or_preview_url(self):
+        self.attach_pdf()
+        urls = (
+            reverse("document_download", kwargs={"pk": self.document.pk}),
+            reverse("document_preview", kwargs={"pk": self.document.pk}),
+        )
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertRedirects(
+                    response,
+                    f"{reverse('login')}?next={url}",
+                    fetch_redirect_response=False,
+                )
+
+    def test_image_and_office_previews_are_inline_for_logged_in_users(self):
         image = save_document_attachment(
             self.document,
             SimpleUploadedFile("photo.png", b"\x89PNG\r\n\x1a\nimage data"),
@@ -256,9 +301,9 @@ class DocumentFileAndFolderTests(TestCase):
         self.assertContains(self.client.get(word_preview_url), "Word preview sample")
 
         self.client.force_login(self.other_department_user)
-        self.assertEqual(self.client.get(word_preview_url).status_code, 404)
+        self.assertEqual(self.client.get(word_preview_url).status_code, 200)
         self.client.force_login(self.recipient)
-        self.assertEqual(self.client.get(word_preview_url).status_code, 404)
+        self.assertEqual(self.client.get(word_preview_url).status_code, 200)
         share = DocumentShare.objects.create(
             document=word_document,
             granted_by=self.owner,
@@ -269,11 +314,11 @@ class DocumentFileAndFolderTests(TestCase):
         self.assertContains(self.client.get(word_preview_url), "Word preview sample")
         share.expires_at = timezone.now() - timedelta(seconds=1)
         share.save(update_fields=["expires_at"])
-        self.assertEqual(self.client.get(word_preview_url).status_code, 404)
+        self.assertEqual(self.client.get(word_preview_url).status_code, 200)
         share.expires_at = timezone.now() + timedelta(days=1)
         share.revoked_at = timezone.now()
         share.save(update_fields=["expires_at", "revoked_at"])
-        self.assertEqual(self.client.get(word_preview_url).status_code, 404)
+        self.assertEqual(self.client.get(word_preview_url).status_code, 200)
 
     def test_folder_creation_assigns_identity_and_department_and_opens_child_path(self):
         self.client.force_login(self.owner)
@@ -304,10 +349,50 @@ class DocumentFileAndFolderTests(TestCase):
         self.assertEqual(child.owner, self.owner)
         self.assertEqual(child.department, self.department_a)
         self.assertEqual(child.parent, parent)
-
         opened = self.client.get(reverse("folder_detail", kwargs={"folder_pk": child.pk}))
         self.assertEqual(opened.status_code, 200)
         self.assertEqual(opened.context["ancestors"], [parent])
+
+    def test_create_from_folder_keeps_folder_context_and_rejects_foreign_folder(self):
+        folder = DocumentFolder.objects.create(
+            name="Current folder",
+            owner=self.owner,
+            department=self.department_a,
+        )
+        self.client.force_login(self.owner)
+        folder_url = reverse("folder_detail", kwargs={"folder_pk": folder.pk})
+        folder_page = self.client.get(folder_url)
+        create_url = f"{reverse('document_create')}?folder={folder.pk}"
+        self.assertContains(folder_page, create_url)
+
+        response = self.client.get(reverse("document_create"), {"folder": str(folder.pk)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(str(response.context["form"]["folder"].value()), str(folder.pk))
+        self.assertContains(response, folder_url)
+
+        response = self.client.post(
+            reverse("document_create"),
+            {
+                "title": "Created in current folder",
+                "content": "Document body",
+                "folder": str(folder.pk),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        created = Document.objects.get(title="Created in current folder")
+        self.assertEqual(created.folder, folder)
+
+        foreign_folder = DocumentFolder.objects.create(
+            name="Foreign folder",
+            owner=self.other_owner,
+            department=self.department_a,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("document_create"), {"folder": str(foreign_folder.pk)}
+            ).status_code,
+            404,
+        )
 
     def test_folder_cannot_move_into_itself_or_descendant_and_foreign_folder_is_hidden(self):
         parent = DocumentFolder.objects.create(
@@ -341,6 +426,12 @@ class DocumentFileAndFolderTests(TestCase):
         )
 
         self.client.force_login(self.admin)
+        admin_folder_page = self.client.get(
+            reverse("folder_detail", kwargs={"folder_pk": foreign_folder.pk})
+        )
+        self.assertEqual(admin_folder_page.status_code, 200)
+        self.assertContains(admin_folder_page, reverse("folder_manage", kwargs={"folder_pk": foreign_folder.pk}))
+        self.assertNotContains(admin_folder_page, f"?folder={foreign_folder.pk}")
         self.assertEqual(
             self.client.get(
                 reverse("folder_detail", kwargs={"folder_pk": foreign_folder.pk})

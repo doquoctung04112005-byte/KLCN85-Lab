@@ -1,6 +1,4 @@
 import os
-from uuid import UUID
-
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -24,21 +22,21 @@ ACCOUNTS = (
 
 DOCUMENTS = (
     (
-        UUID("11111111-1111-4111-8111-111111111111"),
+        "demo_a1",
         "Tài liệu mẫu A1",
         "Nội dung mẫu do nhân viên A1 sở hữu.",
         "nhanvien_a1",
         "A",
     ),
     (
-        UUID("22222222-2222-4222-8222-222222222222"),
+        "demo_a2",
         "Tài liệu mẫu A2",
         "Nội dung mẫu do nhân viên A2 sở hữu.",
         "nhanvien_a2",
         "A",
     ),
     (
-        UUID("33333333-3333-4333-8333-333333333333"),
+        "demo_b1",
         "Tài liệu mẫu B1",
         "Nội dung mẫu do nhân viên B1 sở hữu.",
         "nhanvien_b1",
@@ -87,9 +85,9 @@ class Command(BaseCommand):
                 )
                 users[username] = user
 
-            for document_id, title, content, owner_name, department_code in DOCUMENTS:
+            for demo_code, title, content, owner_name, department_code in DOCUMENTS:
                 Document.objects.get_or_create(
-                    id=document_id,
+                    demo_code=demo_code,
                     defaults={
                         "title": title,
                         "content": content,

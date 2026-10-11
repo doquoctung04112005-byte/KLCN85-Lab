@@ -30,6 +30,7 @@ SECRET_KEY = 'django-insecure-y^vn^_i8uq4@q+t&rqpp6%=31v5-gq-(0$--_8rl*!jp&=sun!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = []
 
 
@@ -47,7 +48,7 @@ INSTALLED_APPS = [
     'accounts',
     'documents',
     'sharing',
-    'audit',
+    'audit.apps.AuditConfig',
 ]
 
 MIDDLEWARE = [
@@ -134,6 +135,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+AUDIT_LOG_FILE = BASE_DIR / "logs" / "audit.jsonl"
+TEST_RUNNER = "audit.test_runner.AuditIsolatedDiscoverRunner"
 
 
 # Email

@@ -11,6 +11,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("documents/", include("documents.urls")),
     path("sharing/", include("sharing.urls")),
+    path("users/new/", account_views.user_create, name="user_create"),
+    path(
+        "users/<int:user_pk>/edit/",
+        account_views.user_edit,
+        name="user_edit",
+    ),
     path("users/", account_views.user_list, name="user_list"),
     path(
         "login/",

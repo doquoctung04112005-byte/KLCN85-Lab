@@ -9,7 +9,7 @@ from .storage import PrivateDocumentStorage
 
 
 class DocumentFolder(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.BigAutoField(primary_key=True)
     name = models.CharField("Tên thư mục", max_length=150)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -65,7 +65,8 @@ def document_file_upload_to(instance, filename):
 
 
 class Document(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.BigAutoField(primary_key=True)
+    demo_code = models.CharField(max_length=32, unique=True, null=True, blank=True, editable=False)
     title = models.CharField("Tiêu đề", max_length=255)
     content = models.TextField("Nội dung", blank=True)
     folder = models.ForeignKey(

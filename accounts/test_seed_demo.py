@@ -4,8 +4,6 @@ import secrets
 from pathlib import Path
 from io import StringIO
 from unittest.mock import patch
-from uuid import UUID
-
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -29,9 +27,9 @@ class SeedDemoCommandTests(TestCase):
         "admin_demo": (UserProfile.Role.ADMIN, None),
     }
     expected_documents = {
-        UUID("11111111-1111-4111-8111-111111111111"): ("nhanvien_a1", "A"),
-        UUID("22222222-2222-4222-8222-222222222222"): ("nhanvien_a2", "A"),
-        UUID("33333333-3333-4333-8333-333333333333"): ("nhanvien_b1", "B"),
+        "demo_a1": ("nhanvien_a1", "A"),
+        "demo_a2": ("nhanvien_a2", "A"),
+        "demo_b1": ("nhanvien_b1", "B"),
     }
 
     def seed(self, stdout):
@@ -62,10 +60,10 @@ class SeedDemoCommandTests(TestCase):
                 self.assertTrue(user.is_active)
 
         self.assertGreaterEqual(Document.objects.count(), 3)
-        for document_id, (owner_name, department_code) in self.expected_documents.items():
-            with self.subTest(document_id=document_id):
+        for demo_code, (owner_name, department_code) in self.expected_documents.items():
+            with self.subTest(demo_code=demo_code):
                 document = Document.objects.select_related("owner", "department").get(
-                    pk=document_id
+                    demo_code=demo_code
                 )
                 self.assertEqual(document.owner.username, owner_name)
                 self.assertEqual(document.department.code, department_code)

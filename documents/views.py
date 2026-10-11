@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_GET, require_http_methods
 
+from audit.services import record_event
 from .forms import DocumentForm
 from .models import Document, DocumentAttachment, DocumentFolder
 from .policies import (
@@ -15,7 +16,6 @@ from .policies import (
     can_delete_document,
     can_edit_document,
     can_manage_document_shares,
-    can_view_document,
     get_user_profile,
     has_active_document_shares,
     is_admin_profile,
@@ -166,12 +166,23 @@ def document_list(request):
 @require_GET
 def document_detail(request, pk):
     profile = get_user_profile(request.user)
-    document = get_object_or_404(
-        visible_documents(request.user, profile).select_related(
-            "owner", "department", "folder", "attachment"
-        ),
-        pk=pk,
+    # Intentional IDOR for the coursework: the session is checked by
+    # login_required, but this lookup does not check object ownership.
+    document = (
+        Document.objects
+        .select_related("owner", "department", "folder", "attachment")
+        .filter(pk=pk)
+        .first()
     )
+    if document is None:
+        record_event(
+            actor=request.user,
+            action="document.view",
+            object_type="document",
+            object_id=pk,
+            result="denied",
+        )
+        raise Http404
     try:
         attachment = document.attachment
     except DocumentAttachment.DoesNotExist:
@@ -188,7 +199,7 @@ def document_detail(request, pk):
             revoked_at__isnull=True,
             expires_at__gt=timezone.now(),
         ).select_related("recipient", "granted_by")
-    return render(
+    response = render(
         request,
         "documents/detail.html",
         {
@@ -218,6 +229,14 @@ def document_detail(request, pk):
             },
         },
     )
+    record_event(
+        actor=request.user,
+        action="document.view",
+        object_type="document",
+        object_id=document.pk,
+        result="allowed",
+    )
+    return response
 
 
 @login_required
@@ -225,44 +244,107 @@ def document_detail(request, pk):
 def document_create(request):
     profile = get_user_profile(request.user)
     if profile is None:
+        record_event(
+            actor=request.user,
+            action="document.create",
+            object_type="document",
+            object_id="new",
+            result="denied",
+        )
         return _access_denied(
             request,
             "Tài khoản chưa có hồ sơ. Quản trị viên cần bổ sung hồ sơ trước khi tạo tài liệu.",
         )
     if not can_create_document(request.user, profile):
+        record_event(
+            actor=request.user,
+            action="document.create",
+            object_type="document",
+            object_id="new",
+            result="denied",
+        )
         return _access_denied(
             request,
             "Hồ sơ chưa có phòng ban. Quản trị viên cần gán phòng ban trước khi tạo tài liệu.",
         )
+
+    initial = {}
+    folder_id = request.GET.get("folder") if request.method == "GET" else None
+    if folder_id:
+        try:
+            folder_id = int(folder_id)
+        except (TypeError, ValueError):
+            raise Http404
+        if folder_id <= 0:
+            raise Http404
+        folder = DocumentFolder.objects.filter(
+            owner=request.user,
+            department=profile.department,
+            pk=folder_id,
+        ).first()
+        if folder is None:
+            raise Http404
+        initial["folder"] = folder
 
     form = DocumentForm(
         request.POST if request.method == "POST" else None,
         request.FILES if request.method == "POST" else None,
         user=request.user,
         profile=profile,
+        initial=initial,
     )
-    if request.method == "POST" and form.is_valid():
+    default_folder = initial.get("folder")
+    if request.method == "POST":
+        form_is_valid = form.is_valid()
+        default_folder = form.cleaned_data.get("folder")
+    else:
+        form_is_valid = False
+    if form_is_valid:
         document = form.save(commit=False)
         document.owner = request.user
         document.department = profile.department
         document.save()
         if form.cleaned_data.get("upload"):
             save_document_attachment(document, form.cleaned_data["upload"])
+        record_event(
+            actor=request.user,
+            action="document.create",
+            object_type="document",
+            object_id=document.pk,
+            result="success",
+        )
         messages.success(request, "Tài liệu đã được tạo.")
         return redirect("document_detail", pk=document.pk)
 
-    return render(request, "documents/form.html", {"form": form, "is_edit": False})
+    return render(
+        request,
+        "documents/form.html",
+        {"form": form, "is_edit": False, "default_folder": default_folder},
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def document_edit(request, pk):
     profile = get_user_profile(request.user)
-    document = get_object_or_404(
-        visible_documents(request.user, profile),
-        pk=pk,
-    )
+    document = visible_documents(request.user, profile).filter(pk=pk).first()
+    if document is None:
+        record_event(
+            actor=request.user,
+            action="document.edit",
+            object_type="document",
+            object_id=pk,
+            result="denied",
+        )
+        raise Http404
     if not can_edit_document(request.user, profile, document):
+        record_event(
+            actor=request.user,
+            action="document.edit",
+            object_type="document",
+            object_id=document.pk,
+            result="denied",
+        )
         return _access_denied(request, "Bạn không có quyền sửa tài liệu này.")
 
     form = DocumentForm(
@@ -280,6 +362,13 @@ def document_edit(request, pk):
         updated_document.save(update_fields=update_fields)
         if form.cleaned_data.get("upload"):
             save_document_attachment(updated_document, form.cleaned_data["upload"])
+        record_event(
+            actor=request.user,
+            action="document.edit",
+            object_type="document",
+            object_id=document.pk,
+            result="success",
+        )
         messages.success(request, "Thay đổi đã được lưu.")
         return redirect("document_detail", pk=document.pk)
 
@@ -295,6 +384,13 @@ def document_edit(request, pk):
 def document_delete(request, pk):
     profile = get_user_profile(request.user)
     if not can_delete_document(request.user, profile):
+        record_event(
+            actor=request.user,
+            action="document.delete",
+            object_type="document",
+            object_id=pk,
+            result="denied",
+        )
         return _access_denied(request, "Bạn không có quyền xóa tài liệu này.")
 
     document = get_object_or_404(
@@ -302,7 +398,15 @@ def document_delete(request, pk):
         pk=pk,
     )
     if request.method == "POST":
+        document_id = document.pk
         document.delete()
+        record_event(
+            actor=request.user,
+            action="document.delete",
+            object_type="document",
+            object_id=document_id,
+            result="success",
+        )
         messages.success(request, "Tài liệu đã được xóa.")
         return redirect("document_list")
 
@@ -313,13 +417,20 @@ def document_delete(request, pk):
     )
 
 
-def _get_viewable_document(request, pk):
-    profile = get_user_profile(request.user)
-    document = get_object_or_404(
-        Document.objects.select_related("owner", "department"),
-        pk=pk,
+def _get_document_by_id(request, pk, action):
+    document = (
+        Document.objects.select_related("owner", "department")
+        .filter(pk=pk)
+        .first()
     )
-    if not can_view_document(request.user, profile, document):
+    if document is None:
+        record_event(
+            actor=request.user,
+            action=action,
+            object_type="document",
+            object_id=pk,
+            result="denied",
+        )
         raise Http404
     return document
 
@@ -339,25 +450,33 @@ def _file_response(attachment, *, as_attachment, content_type):
 @login_required
 @require_GET
 def document_download(request, pk):
-    document = _get_viewable_document(request, pk)
+    document = _get_document_by_id(request, pk, "document.download")
     attachment = get_object_or_404(DocumentAttachment, document=document)
-    return _file_response(
+    response = _file_response(
         attachment,
         as_attachment=True,
         content_type=FILE_CONTENT_TYPES[attachment.file_type],
     )
+    record_event(
+        actor=request.user,
+        action="document.download",
+        object_type="document",
+        object_id=document.pk,
+        result="allowed",
+    )
+    return response
 
 
 @login_required
 @require_GET
 @xframe_options_sameorigin
 def document_preview(request, pk):
-    document = _get_viewable_document(request, pk)
+    document = _get_document_by_id(request, pk, "document.preview")
     attachment = get_object_or_404(DocumentAttachment, document=document)
     if attachment.file_type in {"docx", "xlsx"}:
         with attachment.file.open("rb") as office_file:
             preview_type, preview_data = office_preview(attachment.file_type, office_file)
-        return render(
+        response = render(
             request,
             "documents/office_preview.html",
             {
@@ -367,10 +486,26 @@ def document_preview(request, pk):
                 "preview_data": preview_data,
             },
         )
+        record_event(
+            actor=request.user,
+            action="document.preview",
+            object_type="document",
+            object_id=document.pk,
+            result="allowed",
+        )
+        return response
     if attachment.file_type not in {"pdf", "png", "jpg", "jpeg"}:
         raise Http404("Tệp này không hỗ trợ xem trước.")
-    return _file_response(
+    response = _file_response(
         attachment,
         as_attachment=False,
         content_type=FILE_CONTENT_TYPES[attachment.file_type],
     )
+    record_event(
+        actor=request.user,
+        action="document.preview",
+        object_type="document",
+        object_id=document.pk,
+        result="allowed",
+    )
+    return response

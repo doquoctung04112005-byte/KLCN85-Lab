@@ -1,0 +1,32 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa tài khoản{% endif %} | KLCN85 Drive{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl">
+    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><a href="{% url 'user_list' %}" class="hover:text-blue-700">Người dùng</a><span class="mx-2">/</span>{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa{% endif %}</nav>
+    <div class="mb-6"><h1 class="text-2xl font-semibold tracking-tight text-gray-900">{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa tài khoản{% endif %}</h1><p class="mt-1 text-sm text-gray-500">{% if mode == "create" %}Tạo tài khoản nội bộ và hồ sơ vai trò.{% else %}Cập nhật vai trò, phòng ban hoặc trạng thái cho <strong class="font-medium text-gray-700">{{ target_user.get_username }}</strong>.{% endif %}</p></div>
+    <section class="panel p-5 sm:p-7">
+        <form method="post" action="{% if mode == 'create' %}{% url 'user_create' %}{% else %}{% url 'user_edit' target_user.pk %}{% endif %}" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+            {% if mode == "create" %}
+                {% for field in form %}
+                    {% if field.name == "username" or field.name == "password1" or field.name == "password2" %}
+                        <div class="mb-5"><label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-gray-700">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="mt-1 text-xs leading-5 text-gray-500">{{ field.help_text|safe }}</div>{% endif %}{% for error in field.errors %}<p class="field-error mt-1">{{ error }}</p>{% endfor %}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% for field in form %}
+                {% if field.name == "role" or field.name == "department" or field.name == "is_active" %}
+                    <div class="mb-5"><label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-semibold text-gray-700">{{ field.label }}</label>{{ field }}{% if field.name == "department" %}<p class="mt-1 text-xs leading-5 text-gray-500">Có thể để trống phòng ban. Tài liệu cũ không bị chuyển theo khi đổi phòng ban.</p>{% endif %}{% for error in field.errors %}<p class="field-error mt-1">{{ error }}</p>{% endfor %}</div>
+                {% endif %}
+            {% endfor %}
+            <div class="flex flex-wrap gap-2">
+                <button class="primary-button" type="submit">{% if mode == "create" %}Tạo tài khoản{% else %}Lưu thay đổi{% endif %}</button>
+                <a class="soft-button" href="{% url 'user_list' %}">Hủy</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

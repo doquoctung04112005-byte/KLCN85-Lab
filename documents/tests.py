@@ -1,5 +1,3 @@
-import uuid
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -75,6 +73,10 @@ class DocumentAccessTests(TestCase):
             reverse("document_create"),
             self.detail_url(self.a1_document),
             self.edit_url(self.a1_document),
+            reverse("folder_list"),
+            reverse("folder_create"),
+            reverse("folder_detail", kwargs={"folder_pk": 999999}),
+            reverse("folder_manage", kwargs={"folder_pk": 999999}),
         )
         for url in urls:
             for method, data in (("get", None), ("post", {"title": "Lạ", "content": "Lạ"})):
@@ -127,7 +129,7 @@ class DocumentAccessTests(TestCase):
                 self.assertContains(self.client.get(self.detail_url(document)), document.content)
                 self.client.logout()
 
-    def test_other_employee_and_other_department_cannot_see_detail(self):
+    def test_any_logged_in_employee_can_read_foreign_detail_by_id(self):
         cases = (
             (self.a1, self.a2_document),
             (self.a2, self.a1_document),
@@ -139,8 +141,8 @@ class DocumentAccessTests(TestCase):
             with self.subTest(username=user.username, document=document.pk):
                 self.client.force_login(user)
                 response = self.client.get(self.detail_url(document))
-                self.assertEqual(response.status_code, 404)
-                self.assertNotIn(document.content, response.content.decode())
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, document.content)
                 self.client.logout()
 
     def test_owner_and_admin_can_edit_only_title_and_content(self):
@@ -171,7 +173,7 @@ class DocumentAccessTests(TestCase):
                         "content": f"Nội dung sửa bởi {user.username}",
                         "owner": forged_owner.pk,
                         "department": forged_department.pk,
-                        "id": str(uuid.uuid4()),
+                        "id": "999999",
                         "role": UserProfile.Role.ADMIN,
                     },
                 )
@@ -245,7 +247,7 @@ class DocumentAccessTests(TestCase):
             {"title", "content", "folder", "upload"},
         )
 
-        forged_id = uuid.uuid4()
+        forged_id = 999999
         post_response = self.client.post(
             create_url,
             {
@@ -290,10 +292,13 @@ class DocumentAccessTests(TestCase):
                 )
                 self.client.logout()
 
-    def test_missing_profile_cannot_see_documents(self):
+    def test_missing_profile_list_is_scoped_but_detail_idor_still_works(self):
         self.client.force_login(self.no_profile)
         response = self.client.get(reverse("document_list"))
         self.assertContains(response, "hồ sơ")
         for document in Document.objects.all():
             self.assertNotContains(response, document.title)
-        self.assertEqual(self.client.get(self.detail_url(self.a1_document)).status_code, 404)
+        self.assertContains(
+            self.client.get(self.detail_url(self.a1_document)),
+            self.a1_document.content,
+        )
