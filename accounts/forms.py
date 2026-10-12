@@ -91,6 +91,7 @@ class ManagedAccountUpdateForm(forms.Form):
         actor,
         profile=None,
         active_admin_count,
+        lab_self_edit=False,
         **kwargs,
     ):
         self.target_user = target_user
@@ -104,6 +105,10 @@ class ManagedAccountUpdateForm(forms.Form):
         initial.setdefault("department", profile.department if profile else None)
         initial.setdefault("is_active", "true" if target_user.is_active else "false")
         super().__init__(*args, initial=initial, **kwargs)
+        if lab_self_edit:
+            # Keep the lab flaw confined to self-assignment of the app role.
+            self.fields["department"].disabled = True
+            self.fields["is_active"].disabled = True
 
     def clean(self):
         cleaned_data = super().clean()

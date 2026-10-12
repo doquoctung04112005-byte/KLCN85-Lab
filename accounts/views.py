@@ -38,22 +38,8 @@ def profile(request):
 @login_required
 @require_GET
 def user_list(request):
-    profile = get_user_profile(request.user)
-    if not is_admin_profile(request.user, profile):
-        record_event(
-            actor=request.user,
-            action="account.list",
-            object_type="account_directory",
-            object_id="users",
-            result="denied",
-        )
-        return render(
-            request,
-            "accounts/access_denied.html",
-            {"message": "Bạn không có quyền xem danh sách người dùng."},
-            status=403,
-        )
-
+    # Intentional OWASP A01 forced browsing: login is checked, but the admin
+    # role is not checked before returning the real account directory.
     users = []
     for user in get_user_model().objects.select_related("profile__department").order_by("username"):
         user_profile = getattr(user, "profile", None)
@@ -133,7 +119,16 @@ def user_create(request):
 @require_http_methods(["GET", "POST"])
 def user_edit(request, user_pk):
     profile = get_user_profile(request.user)
-    if not is_admin_profile(request.user, profile):
+    is_app_admin = is_admin_profile(request.user, profile)
+    # Intentional vertical privilege escalation in the local coursework lab:
+    # employees may edit their own account, including its application role.
+    lab_self_edit = (
+        not is_app_admin
+        and profile is not None
+        and profile.role == UserProfile.Role.EMPLOYEE
+        and request.user.pk == user_pk
+    )
+    if not is_app_admin and not lab_self_edit:
         return _account_admin_denied(request, "account.update", user_pk)
 
     user_model = get_user_model()
@@ -163,6 +158,7 @@ def user_edit(request, user_pk):
                 actor=request.user,
                 profile=target_profile,
                 active_admin_count=len(active_admin_ids),
+                lab_self_edit=lab_self_edit,
             )
             form_is_valid = form.is_valid()
             if form_is_valid:
@@ -191,6 +187,7 @@ def user_edit(request, user_pk):
             actor=request.user,
             profile=target_profile,
             active_admin_count=active_admin_count,
+            lab_self_edit=lab_self_edit,
         )
 
     if request.method == "POST" and form_is_valid:
@@ -212,10 +209,15 @@ def user_edit(request, user_pk):
             messages.success(request, "Thông tin tài khoản đã được cập nhật.")
         else:
             messages.info(request, "Không có thay đổi cần lưu.")
-        return redirect("user_list")
+        return redirect("profile" if lab_self_edit else "user_list")
 
     return render(
         request,
         "accounts/user_form.html",
-        {"form": form, "mode": "edit", "target_user": target_user},
+        {
+            "form": form,
+            "mode": "edit",
+            "target_user": target_user,
+            "lab_self_edit": lab_self_edit,
+        },
     )

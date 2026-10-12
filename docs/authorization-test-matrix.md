@@ -1,6 +1,6 @@
 # Ma trận kiểm thử phân quyền KLCN85
 
-Tài liệu này mô tả hành vi phân quyền hiện tại theo `UserProfile.role`, phòng ban và các lượt `DocumentShare` còn hiệu lực. Trong bản lab, ba URL chi tiết, tải xuống và xem trước tài liệu cố ý có IDOR: mọi tài khoản đã đăng nhập có thể truy cập trực tiếp theo ID. Quyền Django như `is_staff`, `is_superuser`, group và permission không thay thế vai trò ứng dụng.
+Tài liệu này mô tả hành vi phân quyền hiện tại theo `UserProfile.role`, phòng ban và các lượt `DocumentShare` còn hiệu lực. Bản lab cố ý có IDOR ở ba URL tài liệu và lỗi leo thang quyền dọc khi nhân viên tự đổi vai trò ứng dụng thành admin. Quyền Django như `is_staff`, `is_superuser`, group và permission không thay thế vai trò ứng dụng.
 
 | Tài khoản / vai trò | Tài nguyên | Hành động | Kết quả mong đợi | Test kiểm chứng |
 |---|---|---|---|---|
@@ -21,8 +21,10 @@ Tài liệu này mô tả hành vi phân quyền hiện tại theo `UserProfile.
 | Trưởng phòng | Tài liệu nhân viên cùng phòng | Sửa GET/POST | Bị từ chối; tài liệu không đổi | `documents/tests.py::test_head_can_view_but_cannot_edit_employee_document` |
 | Admin ứng dụng | Tài liệu bất kỳ | Danh sách, chi tiết, sửa, xóa | Được phép theo quyền admin hiện có | `documents/tests.py::test_list_respects_owner_department_and_admin_role`, `test_detail_allows_owner_head_of_department_and_admin`, `test_owner_and_admin_can_edit_only_title_and_content`, `documents/test_day5.py::test_admin_confirmation_get_is_safe_and_csrf_post_deletes` |
 | Admin ứng dụng | Chia sẻ | Cấp/thu hồi | Có thể cấp trên tài liệu bất kỳ cho người nhận cùng phòng và thu hồi lượt do người khác cấp | `sharing/tests.py::test_admin_can_share_any_document_to_its_department`, `test_admin_can_revoke_another_users_grant` |
+| Nhân viên, bản lab | Tài khoản của chính mình | GET/POST `/users/<ID>/edit/` | Có thể tự lưu `role=admin`; phòng ban và trạng thái vẫn giữ nguyên, sau đó truy cập được chức năng admin ứng dụng | `accounts/test_user_management.py::test_employee_can_self_promote_to_application_admin_in_lab` |
+| Nhân viên hoặc trưởng phòng chưa nâng quyền | Tạo tài khoản, sửa tài khoản người khác | GET/POST trực tiếp | Bị từ chối; không tạo hoặc sửa tài khoản khác | `accounts/test_user_management.py::test_non_admin_get_and_post_are_denied_for_create_and_others_edit` |
 | Bất kỳ tài khoản | Tìm kiếm | Truy vấn tên tài liệu không được phép xem | Policy lọc tài liệu trước tìm kiếm; kết quả và số dòng chỉ gồm tài liệu được phép xem | `documents/test_file_management.py::test_folder_does_not_grant_document_access_and_search_only_filters_visible_documents` |
-| Người gửi POST giả mạo owner/department/role/ID hoặc quyền Django | Tài liệu / tài khoản | Tạo, sửa | Máy chủ chỉ dùng trường hợp lệ và danh tính hiện tại; không nâng quyền bằng dữ liệu gửi thêm | `documents/tests.py::test_create_assigns_current_owner_and_department_despite_forged_post`, `test_owner_and_admin_can_edit_only_title_and_content`, `accounts/test_user_management.py::test_privileged_django_fields_are_rejected_on_create_and_update` |
+| Người gửi POST giả mạo owner/department hoặc quyền Django | Tài liệu / tài khoản | Tạo, sửa | Không đổi owner/department tài liệu hoặc `is_staff`/`is_superuser`; riêng `role` ở trang tự sửa tài khoản là lỗi lab nêu trên | `documents/tests.py::test_create_assigns_current_owner_and_department_despite_forged_post`, `test_owner_and_admin_can_edit_only_title_and_content`, `accounts/test_user_management.py::test_privileged_django_fields_are_rejected_on_create_and_update` |
 | Tài khoản bị khóa (`is_active=False`) | Đăng nhập | POST | Không tạo phiên đăng nhập | `accounts/test_user_management.py::test_lock_unlock_events_and_locked_user_cannot_log_in` |
 | Người dùng ngoài phạm vi | URL chi tiết, tải tệp, quản lý chia sẻ | GET/POST | URL chi tiết/tải tệp bị IDOR và ghi `allowed`; quản lý chia sẻ bị từ chối và ghi `denied`; log không chứa nội dung tài liệu | `audit/tests.py::test_direct_document_idor_is_allowed_but_sharing_is_denied` |
 | Test suite | JSONL kiểm toán | Ghi sự kiện test | Dùng tệp tạm ngoài `logs/audit.jsonl` của web; không thay đổi tệp log đang dùng | `audit/tests.py::test_test_runner_routes_jsonl_events_away_from_live_web_log` |
@@ -34,6 +36,12 @@ Các nhánh policy hiện dùng 404 khi ẩn tài nguyên không được phép 
 ## Route lab cố ý dễ tổn thương
 
 Các route thực tế `/documents/<ID>/`, `/documents/<ID>/download/` và `/documents/<ID>/preview/` dùng ID số tuần tự và cố ý bỏ kiểm tra quyền xem tài liệu. Đây là hành vi của bản lab để tái hiện IDOR; không triển khai bản này với dữ liệu thật.
+
+Route `/users/<ID>/edit/` cho phép nhân viên sửa đúng tài khoản của mình nhưng cố ý giữ trường `role` có thể thay đổi. Khi gửi `role=admin`, tài khoản được cấp quyền admin ứng dụng; chức năng tạo tài khoản và sửa tài khoản người khác vẫn chặn nhân viên trước thời điểm nâng quyền. Chỉ chạy bản lab với tài khoản và dữ liệu giả.
+
+## Scenario #2: forced browsing
+
+Nhân viên thường luôn nhận HTTP `200` từ trang quản lý tài khoản thật `/users/` và xem được danh sách người dùng, dù trang này lẽ ra chỉ dành cho admin ứng dụng. Không cần biến môi trường hoặc `DEBUG=True`. Khách chưa đăng nhập vẫn được chuyển đến trang đăng nhập. Đây là lỗi có chủ đích; xem `docs/scenario-2-forced-browsing.md` và `accounts/test_scenario2.py`. Truy cập danh sách không làm thay đổi vai trò của nhân viên; chức năng tạo và sửa tài khoản người khác vẫn từ chối họ.
 
 ## Các giới hạn ngoài phạm vi ma trận này
 

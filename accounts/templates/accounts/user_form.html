@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="mx-auto max-w-3xl">
-    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><a href="{% url 'user_list' %}" class="hover:text-blue-700">Người dùng</a><span class="mx-2">/</span>{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa{% endif %}</nav>
+    <nav class="mb-3 text-xs font-medium text-gray-500" aria-label="Đường dẫn"><a href="{% url 'dashboard' %}" class="hover:text-blue-700">Drive</a><span class="mx-2">/</span><a href="{% if lab_self_edit %}{% url 'profile' %}{% else %}{% url 'user_list' %}{% endif %}" class="hover:text-blue-700">{% if lab_self_edit %}Hồ sơ{% else %}Người dùng{% endif %}</a><span class="mx-2">/</span>{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa{% endif %}</nav>
     <div class="mb-6"><h1 class="text-2xl font-semibold tracking-tight text-gray-900">{% if mode == "create" %}Tạo tài khoản{% else %}Chỉnh sửa tài khoản{% endif %}</h1><p class="mt-1 text-sm text-gray-500">{% if mode == "create" %}Tạo tài khoản nội bộ và hồ sơ vai trò.{% else %}Cập nhật vai trò, phòng ban hoặc trạng thái cho <strong class="font-medium text-gray-700">{{ target_user.get_username }}</strong>.{% endif %}</p></div>
     <section class="panel p-5 sm:p-7">
         <form method="post" action="{% if mode == 'create' %}{% url 'user_create' %}{% else %}{% url 'user_edit' target_user.pk %}{% endif %}" novalidate>
@@ -24,7 +24,7 @@
             {% endfor %}
             <div class="flex flex-wrap gap-2">
                 <button class="primary-button" type="submit">{% if mode == "create" %}Tạo tài khoản{% else %}Lưu thay đổi{% endif %}</button>
-                <a class="soft-button" href="{% url 'user_list' %}">Hủy</a>
+                <a class="soft-button" href="{% if lab_self_edit %}{% url 'profile' %}{% else %}{% url 'user_list' %}{% endif %}">Hủy</a>
             </div>
         </form>
     </section>

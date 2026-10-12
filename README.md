@@ -41,3 +41,11 @@ Sau khi PostgreSQL chạy, áp dụng migration, kiểm tra cấu hình và ch�
 ## Đường dẫn dùng ID số
 
 Sau khi chạy migration, tài liệu và thư mục có ID số tăng dần. Ví dụ: `/documents/1/` và `/documents/folders/1/`. Các liên kết UUID cũ không còn khớp URL mới. Trong bản lab, các URL chi tiết, tải xuống và xem trước tài liệu cố ý thiếu kiểm tra quyền xem đối tượng để minh họa IDOR; xem `docs/idor-bola-lab.md`.
+
+## Lab leo thang quyền dọc
+
+Nhân viên có thể mở trang Hồ sơ cá nhân, chọn **Chỉnh sửa hồ sơ** và đổi vai trò ứng dụng của chính mình thành quản trị viên. Đây là lỗ hổng cố ý của bản lab để minh họa leo thang đặc quyền. Chỉ dùng tài khoản và dữ liệu giả trong môi trường local; xem ma trận tại `docs/authorization-test-matrix.md`.
+
+## Scenario #2: forced browsing
+
+Trang quản lý tài khoản thật `/users/` cố ý thiếu kiểm tra vai trò admin: mọi tài khoản đã đăng nhập đều xem được danh sách người dùng bằng URL trực tiếp. Không cần bật biến môi trường. Xem cách thử bằng Burp Repeater và ghi bằng chứng tại `docs/scenario-2-forced-browsing.md`.

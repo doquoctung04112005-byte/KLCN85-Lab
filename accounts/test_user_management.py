@@ -244,17 +244,68 @@ class AccountManagementFlowTests(TestCase):
         self.assertEqual(login.status_code, 200)
         self.assertNotIn("_auth_user_id", self.client.session)
 
-    def test_non_admin_get_and_post_are_denied_for_create_and_edit(self):
-        for user in (self.employee, self.department_head):
+    def test_employee_can_self_promote_to_application_admin_in_lab(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.employee)
+        self.assertEqual(client.get(reverse("user_list")).status_code, 200)
+
+        self_edit_url = self.edit_url(self.employee)
+        form_page = client.get(self_edit_url)
+        self.assertEqual(form_page.status_code, 200)
+        self.assertContains(form_page, 'name="role"')
+        csrf_token = client.cookies["csrftoken"].value
+
+        payload = self.update_data(
+            role=UserProfile.Role.ADMIN,
+            department=self.department_b,
+            is_active=False,
+        )
+        without_csrf = client.post(self_edit_url, payload)
+        self.assertEqual(without_csrf.status_code, 403)
+        self.employee.profile.refresh_from_db()
+        self.assertEqual(self.employee.profile.role, UserProfile.Role.EMPLOYEE)
+
+        response = client.post(
+            self_edit_url,
+            {**payload, "csrfmiddlewaretoken": csrf_token},
+        )
+        self.assertRedirects(response, reverse("profile"))
+
+        self.employee.refresh_from_db()
+        self.employee.profile.refresh_from_db()
+        self.assertEqual(self.employee.profile.role, UserProfile.Role.ADMIN)
+        self.assertEqual(self.employee.profile.department, self.department_a)
+        self.assertTrue(self.employee.is_active)
+        self.assertFalse(self.employee.is_staff)
+        self.assertFalse(self.employee.is_superuser)
+        self.assertEqual(client.get(reverse("user_list")).status_code, 200)
+        self.assertEqual(client.get(self.create_url()).status_code, 200)
+        event = AuditLog.objects.get(
+            actor=self.employee,
+            action="account.update",
+            object_id=str(self.employee.pk),
+            result="success",
+        )
+        self.assertEqual(event.details, {"changed_fields": ["role"]})
+
+    def test_non_admin_get_and_post_are_denied_for_create_and_others_edit(self):
+        for user, target in (
+            (self.employee, self.department_head),
+            (self.department_head, self.employee),
+        ):
             with self.subTest(username=user.username):
                 self.client.force_login(user)
-                for url in (self.create_url(), self.edit_url(self.employee)):
+                for url in (self.create_url(), self.edit_url(target)):
                     self.assertEqual(self.client.get(url).status_code, 403)
                     self.assertEqual(
                         self.client.post(url, self.create_data()).status_code,
                         403,
                     )
                 self.client.logout()
+
+        self.client.force_login(self.department_head)
+        self.assertEqual(self.client.get(self.edit_url(self.department_head)).status_code, 403)
+        self.client.logout()
 
         self.assertFalse(
             get_user_model().objects.filter(username="new_managed_user").exists()
@@ -268,7 +319,7 @@ class AccountManagementFlowTests(TestCase):
                 action__in=("account.create", "account.update"),
                 result="denied",
             ).count(),
-            4,
+            5,
         )
 
     def test_anonymous_cannot_open_or_post_account_management_urls(self):

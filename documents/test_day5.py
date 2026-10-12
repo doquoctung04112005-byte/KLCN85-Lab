@@ -233,13 +233,14 @@ class DayFiveDocumentAccessTests(TestCase):
         self.assertNotContains(response, "TestPass123!")
         self.assertNotContains(response, "Mật khẩu")
 
-    def test_user_list_rejects_all_non_admin_roles_and_missing_profile(self):
+    def test_user_list_exposes_accounts_to_any_logged_in_user(self):
         for user in (self.a1, self.a2, self.head_a, self.b1, self.no_profile):
             with self.subTest(username=user.username):
                 self.client.force_login(user)
                 response = self.client.get(reverse("user_list"))
-                self.assertEqual(response.status_code, 403)
-                self.assertNotIn(self.admin.username, response.content.decode())
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, self.admin.username)
+                self.assertNotContains(response, self.admin.password)
                 self.client.logout()
 
     def test_admin_navigation_has_user_list_and_delete_links_only_for_admin(self):
