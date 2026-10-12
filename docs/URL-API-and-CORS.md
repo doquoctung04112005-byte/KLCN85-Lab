@@ -90,3 +90,53 @@ Sau khi hoàn tất kiểm thử thủ công, chạy các test liên quan để 
 ```
 
 Các test liên quan đã có trong repository gồm kiểm thử IDOR ở detail/download/preview, trạng thái share hết hạn/thu hồi, phân quyền danh sách/sửa và log audit. Kết quả test không thay thế bằng chứng request/response của CORS vì hiện chưa có API/CORS config trong ứng dụng.
+
+## Bản vá lỗ hổng sau khi hoàn tất lab
+
+> Phần này là hướng dẫn khắc phục, không phải trạng thái hiện tại của mã nguồn. Không áp dụng trong lúc cần tái hiện IDOR; hãy ghi và lưu bằng chứng trước. Việc sửa mã nguồn cần được thực hiện và review riêng.
+
+### 1. Khắc phục IDOR ở detail, download và preview
+
+1. Lấy profile của người dùng hiện tại bằng policy dùng chung (`get_user_profile`) và tra cứu tài liệu qua queryset được phép (`visible_documents`), thay vì truy vấn trực tiếp `Document.objects.filter(pk=pk)`.
+2. Áp dụng cùng một ranh giới quyền cho cả ba endpoint: chi tiết, tải xuống và xem trước. Chỉ kiểm tra `login_required` là chưa đủ vì nó xác thực phiên đăng nhập, không xác nhận quyền trên tài liệu cụ thể.
+3. Dùng kết quả queryset đã giới hạn quyền để truy cập attachment. Giữ nguyên các giới hạn file hiện có, response `private, no-store`, `nosniff`, và loại nội dung; không tạo đường dẫn media công khai để lách kiểm soát.
+4. Quyết định policy theo vai trò/chia sẻ hiện có: chủ sở hữu, admin ứng dụng, trưởng phòng trong phạm vi phòng ban và người nhận có lượt chia sẻ đang hiệu lực chỉ được xem theo điều kiện tương ứng. Lượt hết hạn hoặc đã thu hồi không được cấp quyền qua endpoint file. Thư mục không tự cấp quyền xem tài liệu.
+5. Ghi audit cho cả cho phép và từ chối; không đưa nội dung tài liệu, cookie hoặc token vào log. Khi cần tránh tiết lộ sự tồn tại của tài liệu, trả 404 nhất quán cho đối tượng nằm ngoài queryset được phép.
+
+Ví dụ mẫu cho cách giới hạn tra cứu trong view (điều chỉnh tên biến theo endpoint; đây không phải thay đổi đã áp dụng):
+
+```python
+profile = get_user_profile(request.user)
+document = get_object_or_404(
+    visible_documents(request.user, profile).select_related("owner", "department"),
+    pk=pk,
+)
+```
+
+Không chỉ thay truy vấn ở trang chi tiết: download và preview phải dùng cùng policy. Nếu sau này có API DRF, khai báo authentication và permission rõ ràng, đồng thời giới hạn queryset theo người dùng; không dựa riêng vào object permission nếu list endpoint vẫn trả queryset không giới hạn.
+
+### 2. Giữ an toàn cho phương thức thay đổi dữ liệu
+
+- Chỉ cho phép method cần thiết ở từng endpoint; thao tác thay đổi dữ liệu không được thực hiện qua GET/HEAD.
+- Giữ CSRF protection cho xác thực bằng cookie/session. Không tắt `CsrfViewMiddleware` để xử lý lỗi CORS.
+- Kiểm tra quyền đối tượng ở phía server trên từng request thay đổi; không tin ID, owner, department hay role do client gửi lên.
+- Thử request thiếu CSRF và method không được hỗ trợ trên fixture có thể khôi phục; xác nhận bị từ chối và dữ liệu không đổi.
+
+### 3. Cấu hình CORS tối thiểu nếu thật sự cần cross-origin
+
+Hiện ứng dụng chưa khai báo API endpoint hoặc cấu hình CORS. Chỉ triển khai CORS khi đã xác định được client origin và nhu cầu truy cập cụ thể:
+
+1. Lập allowlist chính xác gồm scheme, hostname và port của frontend được tin cậy; không phản chiếu tùy ý giá trị `Origin` do client gửi.
+2. Chỉ cho phép method và request header thực sự cần cho endpoint đó. CORS không phải là cách cấp quyền truy cập tài liệu.
+3. Nếu dùng cookie/session cross-origin, chỉ bật credentials với origin cụ thể; không kết hợp `Access-Control-Allow-Credentials: true` với `Access-Control-Allow-Origin: *`. Kiểm tra thêm `SameSite` và `Secure` cho cookie, HTTPS ở môi trường triển khai và CSRF cho request thay đổi dữ liệu.
+4. Nếu dùng middleware/thư viện CORS, thêm dependency và cấu hình qua thay đổi riêng có review. Đặt middleware đúng thứ tự theo hướng dẫn phiên bản thư viện; đừng sửa trong lúc đang thu thập baseline lab.
+5. Không tin `Origin` như cơ chế xác thực. Endpoint vẫn phải xác thực người dùng và kiểm tra quyền đối tượng dù CORS chỉ cho phép một origin.
+
+### 4. Kiểm chứng bản vá
+
+- Lặp lại ca của chủ sở hữu: xem, tải và preview tài liệu hợp lệ vẫn hoạt động.
+- Lặp lại bằng tài khoản khác phòng ban/chưa được chia sẻ: detail, download và preview đều bị từ chối, không trả nội dung hoặc byte của file.
+- Kiểm tra người nhận có share còn hạn chỉ xem được quyền được cấp; share hết hạn/thu hồi không còn truy cập được.
+- Kiểm tra trưởng phòng, admin ứng dụng, quyền sửa và danh sách vẫn đúng theo policy hiện hành; bảo đảm người dùng không thể nâng quyền bằng dữ liệu POST giả mạo.
+- Chạy các test hiện có và cập nhật/viết test hồi quy riêng cho ba endpoint nếu chúng chưa kiểm tra đủ trạng thái quyền. Với CORS, xác minh preflight và response từ origin được phép lẫn origin không được phép trên trình duyệt; xác nhận CORS không che lấp lỗi phân quyền.
+- Chỉ đánh dấu hoàn tất khi response trái quyền không còn rò rỉ dữ liệu, thao tác hợp lệ không bị hỏng và bằng chứng test đã được lưu an toàn.
